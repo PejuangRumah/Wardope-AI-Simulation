@@ -9,7 +9,9 @@ import type { WardrobeItemWithEmbedding, OutfitCombination } from '$lib/types';
 export function getDefaultPromptTemplate(): string {
 	return `You are a professional fashion stylist AI.
 
-Your task: Create 3-5 complete outfit combinations from the provided wardrobe items for the occasion: "{{occasion}}".
+Your task: Create outfit combinations (1-5) from the provided wardrobe items for the occasion: "{{occasion}}".
+
+IMPORTANT: Prioritize quality over quantity. If only 1 great combination exists, return just that one. If no items match the occasion or user preferences well, return an empty combinations array. Don't force mismatched outfits.
 
 COMBINATION RULES:
 1. Full Body items (Dress/Jumpsuit): Can be standalone OR can be layered with outerwear/accessories
@@ -34,8 +36,13 @@ For each combination, recommend 3-5 background colors suitable for Instagram Sto
 - Provide variety (neutral, bold, soft options)
 
 For each combination, provide:
-1. Clear reasoning WHY these items work together
-2. Background color recommendations with hex codes and descriptive names`;
+1. Reasoning as bullet points (2-4 concise points explaining why items work together)
+2. Background color recommendations with hex codes and descriptive names
+
+Example reasoning format:
+- Color harmony: Navy blazer complements beige chinos for balanced contrast
+- Occasion fit: Professional polish suitable for work/office settings
+- Style coherence: Clean lines maintain minimalist aesthetic`;
 }
 
 /**
