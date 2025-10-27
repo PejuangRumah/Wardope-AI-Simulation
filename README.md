@@ -20,6 +20,32 @@ AI-powered wardrobe styling with semantic search and cost transparency. This pro
 - 📊 Complete usage transparency
 - ⚡ In-memory caching for performance
 - 🎨 Beautiful, responsive UI
+- 🎨 Interactive moodboard builder with canvas
+- 🔧 System prompt editor (advanced customization)
+- 📖 AI process explanation (educational transparency)
+
+## User Interface Features
+
+### System Prompt Editor (Advanced)
+- **Editable AI instructions**: Customize how the AI generates outfit recommendations
+- **Template variables**: Uses `{{occasion}}` and `{{note}}` placeholders for dynamic content
+- **Real-time preview**: See available template variables and their descriptions
+- **Reset functionality**: Restore default prompt template anytime
+- **Use case**: Advanced users who want to fine-tune AI behavior for specific styling preferences
+
+### AI Process Explanation (Info)
+- **6-step pipeline visualization**: Understand how the recommendation system works
+- **Cost breakdown**: See estimated time and API costs for each step
+- **Technical details**: Learn about embeddings, semantic search, and GPT-4o generation
+- **Educational transparency**: Know exactly what happens when you click "Generate"
+- **Use case**: Users who want to understand the AI technology powering their recommendations
+
+### Moodboard Builder
+- **Interactive canvas**: Drag, resize, and rotate outfit items on a 1080x1920 canvas
+- **Background colors**: Apply AI-recommended colors or custom hex codes
+- **Multi-item support**: Combine multiple items from different outfit combinations
+- **Export ready**: Create Instagram Story-ready outfit layouts
+- **Use case**: Visual content creation for social media or personal styling portfolios
 
 ## Getting Started
 
@@ -132,6 +158,8 @@ wardope-ai/
 ```
 
 ## How It Works - Technical Flow
+
+> **💡 User-Friendly Explanation**: The application includes an interactive "How AI Recommendation Works" dropdown that explains this technical process in a visual, easy-to-understand format. Click the "Show" button in the UI to see the 6-step pipeline with cost breakdowns and timing estimates.
 
 ### 1. User Input
 ```
