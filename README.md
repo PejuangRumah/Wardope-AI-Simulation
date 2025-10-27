@@ -25,6 +25,27 @@ Install dependencies:
 npm install
 ```
 
+### Environment Setup
+
+This project requires an OpenAI API key. Set up your environment variables:
+
+1. Copy the example environment file:
+```sh
+cp .env.example .env
+```
+
+2. Open `.env` and add your OpenAI API key:
+```
+OPENAI_API_KEY_PROD=your-actual-openai-api-key
+```
+
+3. Get your API key from [OpenAI Platform](https://platform.openai.com/api-keys)
+
+**Security Notes:**
+- Never commit your `.env` file to version control (it's already in `.gitignore`)
+- Keep your API keys secure and rotate them regularly
+- If a key is compromised, revoke it immediately and generate a new one
+
 ### Development
 
 Start the development server:
