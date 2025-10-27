@@ -3,6 +3,49 @@ import { openai } from './openai';
 import type { WardrobeItemWithEmbedding, OutfitCombination } from '$lib/types';
 
 /**
+ * Get the default system prompt template
+ * Template variables: {{occasion}}, {{note}}
+ */
+export function getDefaultPromptTemplate(): string {
+	return `You are a professional fashion stylist AI.
+
+Your task: Create 3-5 complete outfit combinations from the provided wardrobe items for the occasion: "{{occasion}}".
+
+COMBINATION RULES:
+1. Full Body items (Dress/Jumpsuit): Can be standalone OR can be layered with outerwear/accessories
+2. Regular outfit: Must include at minimum:
+   - Top (or Outerwear as top layer)
+   - Bottom
+   - Footwear
+3. Optional additions: Outerwear, Accessories (recommended for completeness)
+
+STYLE GUIDELINES:
+- Color harmony: Consider complementary, analogous, or monochromatic color schemes
+- Occasion appropriateness: Match formality level to "{{occasion}}"
+- Practical combinations: Ensure items work together functionally
+- Style coherence: Maintain consistent aesthetic (casual, formal, sporty, etc.)
+{{note}}
+
+For each combination, provide clear reasoning WHY these items work together.`;
+}
+
+/**
+ * Build system prompt from template by replacing variables
+ */
+function buildSystemPrompt(template: string, occasion: string, note?: string): string {
+	let prompt = template.replace(/\{\{occasion\}\}/g, occasion);
+
+	// Handle note variable
+	if (note) {
+		prompt = prompt.replace('{{note}}', `- User preference: ${note}`);
+	} else {
+		prompt = prompt.replace('{{note}}', '');
+	}
+
+	return prompt;
+}
+
+/**
  * Generate outfit combinations using GPT-4o with structured output
  */
 export async function generateOutfits(
@@ -27,29 +70,10 @@ export async function generateOutfits(
     occasion: item.occasion
   }));
 
-  // Create system prompt
-  const systemPrompt =
-    customPrompt ||
-    `You are a professional fashion stylist AI.
-
-Your task: Create 3-5 complete outfit combinations from the provided wardrobe items for the occasion: "${occasion}".
-
-COMBINATION RULES:
-1. Full Body items (Dress/Jumpsuit): Can be standalone OR can be layered with outerwear/accessories
-2. Regular outfit: Must include at minimum:
-   - Top (or Outerwear as top layer)
-   - Bottom
-   - Footwear
-3. Optional additions: Outerwear, Accessories (recommended for completeness)
-
-STYLE GUIDELINES:
-- Color harmony: Consider complementary, analogous, or monochromatic color schemes
-- Occasion appropriateness: Match formality level to "${occasion}"
-- Practical combinations: Ensure items work together functionally
-- Style coherence: Maintain consistent aesthetic (casual, formal, sporty, etc.)
-${note ? `- User preference: ${note}` : ''}
-
-For each combination, provide clear reasoning WHY these items work together.`;
+  // Create system prompt - use custom if provided, otherwise use default template
+  const systemPrompt = customPrompt
+    ? buildSystemPrompt(customPrompt, occasion, note)
+    : buildSystemPrompt(getDefaultPromptTemplate(), occasion, note);
 
   // Call GPT-4o with structured output
   const response = await openai.chat.completions.create({

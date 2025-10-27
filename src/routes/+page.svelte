@@ -8,10 +8,12 @@
 	let occasion: string = 'casual';
 	let note = '';
 	let customPrompt = '';
+	let defaultPrompt = '';
+	let promptVariables: any[] = [];
+	let showPromptEditor = false;
 	let loading = false;
 	let result: RecommendationResponse | null = null;
 	let error: string | null = null;
-	let devMode = false;
 
 	// CSV Preview state
 	let isDefaultFile = false;
@@ -67,7 +69,7 @@
 		formData.append('csv', csvFile);
 		formData.append('occasion', occasion);
 		if (note) formData.append('note', note);
-		if (devMode && customPrompt) formData.append('customPrompt', customPrompt);
+		if (customPrompt) formData.append('customPrompt', customPrompt);
 
 		try {
 			const response = await fetch('/api/recommend', {
@@ -218,6 +220,29 @@
 
 	function resetToDefault() {
 		loadDefaultCSV(gender);
+	}
+
+	async function loadDefaultPrompt() {
+		try {
+			const response = await fetch('/api/prompt');
+			if (!response.ok) throw new Error('Failed to load default prompt');
+
+			const data = await response.json();
+			defaultPrompt = data.template;
+			promptVariables = data.variables || [];
+
+			// Initialize customPrompt with default if empty
+			if (!customPrompt) {
+				customPrompt = defaultPrompt;
+			}
+		} catch (err) {
+			console.error('Error loading default prompt:', err);
+			error = 'Failed to load default prompt template.';
+		}
+	}
+
+	function resetPromptToDefault() {
+		customPrompt = defaultPrompt;
 	}
 
 	function getImagePath(itemId: string): string {
@@ -455,6 +480,7 @@
 	onMount(() => {
 		window.addEventListener('keydown', handleKeyDown);
 		loadDefaultCSV(gender); // Load default CSV on mount
+		loadDefaultPrompt(); // Load default prompt template on mount
 		return () => {
 			window.removeEventListener('keydown', handleKeyDown);
 		};
@@ -596,21 +622,91 @@
 					></textarea>
 				</div>
 
-				<!-- Dev Mode -->
-				{#if devMode}
-					<div class="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-						<label for="custom-prompt" class="block text-sm font-medium text-gray-700 mb-2">
-							Custom System Prompt (Dev Only)
-						</label>
-						<textarea
-							id="custom-prompt"
-							bind:value={customPrompt}
-							rows="5"
-							placeholder="Override the default system prompt..."
-							class="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-						></textarea>
-					</div>
-				{/if}
+				<!-- System Prompt Editor -->
+				<div class="border border-gray-300 rounded-lg overflow-hidden">
+					<button
+						type="button"
+						on:click={() => (showPromptEditor = !showPromptEditor)}
+						class="w-full flex items-center justify-between px-4 py-3 bg-gray-50 hover:bg-gray-100 transition-colors"
+					>
+						<div class="flex items-center gap-2">
+							<svg
+								class="w-5 h-5 text-gray-600 transition-transform {showPromptEditor
+									? 'rotate-90'
+									: ''}"
+								fill="none"
+								stroke="currentColor"
+								viewBox="0 0 24 24"
+							>
+								<path
+									stroke-linecap="round"
+									stroke-linejoin="round"
+									stroke-width="2"
+									d="M9 5l7 7-7 7"
+								/>
+							</svg>
+							<span class="text-sm font-medium text-gray-700">System Prompt Editor</span>
+							<span
+								class="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs font-semibold rounded"
+							>
+								Advanced
+							</span>
+						</div>
+						<span class="text-xs text-gray-500">
+							{showPromptEditor ? 'Hide' : 'Show'}
+						</span>
+					</button>
+
+					{#if showPromptEditor}
+						<div class="p-4 bg-white">
+							<!-- Help Text -->
+							<div class="mb-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+								<p class="text-xs text-blue-800 mb-2">
+									<strong>Template Variables:</strong> These will be automatically replaced with actual
+									values. Do NOT remove them!
+								</p>
+								<ul class="text-xs text-blue-700 space-y-1">
+									{#each promptVariables as variable}
+										<li class="flex items-start gap-2">
+											<code
+												class="px-1.5 py-0.5 bg-blue-100 text-blue-900 rounded font-mono text-xs"
+											>
+												{variable.name}
+											</code>
+											<span>
+												{variable.description}
+												{variable.required ? '(Required)' : '(Optional)'}
+											</span>
+										</li>
+									{/each}
+								</ul>
+							</div>
+
+							<!-- Prompt Editor -->
+							<label for="custom-prompt" class="block text-sm font-medium text-gray-700 mb-2">
+								Edit System Prompt
+							</label>
+							<textarea
+								id="custom-prompt"
+								bind:value={customPrompt}
+								rows="12"
+								placeholder="Loading default prompt..."
+								class="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm"
+							></textarea>
+
+							<!-- Reset Button -->
+							<div class="mt-3 flex justify-end">
+								<button
+									type="button"
+									on:click={resetPromptToDefault}
+									class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+								>
+									Reset to Default
+								</button>
+							</div>
+						</div>
+					{/if}
+				</div>
 
 				<!-- Submit -->
 				<button
