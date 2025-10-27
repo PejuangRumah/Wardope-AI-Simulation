@@ -121,6 +121,31 @@ polished yet approachable work/office look."
 - Avoid items (e.g., "no dresses")
 - Special requirements (e.g., "comfortable for travel")
 
+### 9. Professional Communication Style
+
+**DO** maintain professional output appearance:
+- Use clear, concise language without excessive enthusiasm
+- Structure responses consistently across all combinations
+- Focus on substance over decorative elements
+- Keep formatting minimal and purposeful
+- Provide specific, actionable reasoning
+
+**DO** avoid patterns that look "AI-generated":
+- No excessive exclamation marks or hyperbolic language
+- No emoji spam or decorative symbols in text
+- No rainbow or arbitrary color variations in structured output
+- No overly enthusiastic tone that feels inauthentic
+- Maintain consistent professional voice throughout all combinations
+
+**Example of professional reasoning**:
+```
+✅ GOOD: "The navy blazer provides structure while the beige chinos maintain comfort.
+Brown leather loafers complement the earthy tones, creating a polished work/office look."
+
+❌ BAD: "OMG! This AMAZING navy blazer is PERFECT!! 🎉✨ It looks SO GOOD with beige chinos!
+You'll LOVE these brown loafers!! 💫🔥"
+```
+
 ---
 
 ## ❌ DON'Ts - Common Mistakes to Avoid
@@ -189,7 +214,39 @@ polished yet approachable work/office look."
 - ❌ More than 5 combinations (overwhelming for user)
 - ✅ Aim for 3-5 combinations per request
 
-### 8. Ignoring Available Items
+### 8. Unprofessional Output Appearance
+
+**DON'T** make responses look AI-generated or unprofessional:
+- ❌ Excessive emoji usage (🎉✨💫🔥 spam in descriptions)
+- ❌ Rainbow formatting (arbitrary color variations without meaning)
+- ❌ Over-enthusiasm ("AMAZING! FANTASTIC! PERFECT!! WOW!!!")
+- ❌ Decorative elements that add no value to outfit reasoning
+- ❌ Hyperbolic language that feels inauthentic
+
+**DON'T** use inconsistent formatting:
+- ❌ Random bold/italic text without clear purpose
+- ❌ Varying description styles within the same response
+- ❌ Unnecessary visual noise that distracts from content
+- ❌ Different tone for different combinations in same request
+
+**Examples of what to avoid**:
+```
+❌ BAD REASONING: "🎉 WOW! This outfit is ABSOLUTELY STUNNING!!
+The blue shirt is PERFECT and the pants are AMAZING!! ✨💫
+You'll look SO FASHIONABLE!!! 🔥🔥🔥"
+
+✅ GOOD REASONING: "The blue shirt provides a clean, professional foundation.
+Paired with charcoal trousers, it creates appropriate contrast for office settings.
+Black leather shoes complete the polished look."
+
+❌ BAD STYLE NOTES: "OMG these colors are TO DIE FOR!!! 😍
+Pair with your favorite accessories!! 💖✨"
+
+✅ GOOD STYLE NOTES: "Consider adding a watch or leather belt to enhance the
+professional aesthetic. This combination works well for client meetings or presentations."
+```
+
+### 9. Ignoring Available Items
 
 **DON'T** recommend items not in the wardrobe:
 - ❌ Inventing items or suggesting purchases
@@ -284,6 +341,7 @@ A successful outfit recommendation should:
 6. ✅ Follow **JSON schema** strictly (no errors)
 7. ✅ Respect **user preferences** from note field
 8. ✅ Show **appropriate confidence** level
+9. ✅ Use **professional communication style** (no emoji spam, excessive enthusiasm, or AI-generated appearance)
 
 ---
 
@@ -293,9 +351,10 @@ A successful outfit recommendation should:
 - Template location: `src/lib/services/outfit-generator.ts` (line 9-39)
 - JSON schema location: `src/lib/services/outfit-generator.ts` (line 100-157)
 - For testing, use the existing CSV files: `src/lib/files/Affiliate Items - Mens.csv` and `Affiliate Items - Womens.csv`
+- Professional styling guidelines implemented in UI: `src/routes/+page.svelte` (AI Process Explanation section)
 
 ---
 
 **Last Updated**: 2025-01-27
-**Version**: 1.0.0
+**Version**: 2.0.0
 **Maintained by**: Wardope AI Development Team
