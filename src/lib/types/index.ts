@@ -27,12 +27,18 @@ export interface OutfitItem {
   reason: string;
 }
 
+export interface BackgroundColor {
+  hex: string;
+  name: string;
+}
+
 export interface OutfitCombination {
   id: number;
   items: OutfitItem[];
   reasoning: string;
   style_notes?: string;
   confidence: 'low' | 'medium' | 'high';
+  background_colors?: BackgroundColor[];
 }
 
 export interface UsageStats {

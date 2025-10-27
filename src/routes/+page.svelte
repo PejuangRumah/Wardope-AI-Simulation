@@ -12,6 +12,8 @@
 	let promptVariables: any[] = [];
 	let showPromptEditor = false;
 	let loading = false;
+	let processingSeconds = 0;
+	let processingInterval: ReturnType<typeof setInterval> | null = null;
 	let result: RecommendationResponse | null = null;
 	let error: string | null = null;
 
@@ -63,6 +65,12 @@
 		error = null;
 		result = null;
 
+		// Start processing timer
+		processingSeconds = 0;
+		processingInterval = setInterval(() => {
+			processingSeconds++;
+		}, 1000);
+
 		const formData = new FormData();
 		formData.append('gender', gender);
 		formData.append('csv', csvFile);
@@ -95,6 +103,12 @@
 			console.error(err);
 		} finally {
 			loading = false;
+
+			// Stop processing timer
+			if (processingInterval) {
+				clearInterval(processingInterval);
+				processingInterval = null;
+			}
 		}
 	}
 
@@ -248,9 +262,8 @@
 	function addItemToCanvas(itemId: string) {
 		const imageSrc = getImagePath(itemId);
 
-		// Add to tracking
-		addedItems.add(itemId);
-		addedItems = addedItems; // Trigger reactivity
+		// Add to tracking - create new Set to trigger reactivity
+		addedItems = new Set([...addedItems, itemId]);
 
 		const newItem: CanvasItem = {
 			id: `item-${itemId}-${Date.now()}`,
@@ -825,7 +838,7 @@
 					disabled={loading || !csvFile}
 					class="w-full bg-blue-600 text-white font-semibold py-3 px-4 rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
 				>
-					{loading ? 'Processing...' : 'Generate Recommendations'}
+					{loading ? `Processing... (${processingSeconds}s)` : 'Generate Recommendations'}
 				</button>
 			</div>
 		</form>
@@ -1056,21 +1069,71 @@
 							</div>
 
 							<!-- Canvas Controls -->
-							<div class="grid md:grid-cols-2 gap-4 mb-6">
-								<div>
-									<label for="canvas-bg" class="block text-sm font-medium text-gray-700 mb-2">
+							<div class="mb-6">
+								<div class="mb-4">
+									<label class="block text-sm font-medium text-gray-700 mb-3">
 										Background Color
 									</label>
-									<input
-										id="canvas-bg"
-										type="color"
-										bind:value={canvasBackgroundColor}
-										on:input={() => renderCanvas()}
-										class="h-10 w-full rounded border border-gray-300 cursor-pointer"
-									/>
+
+									<!-- Recommended Colors -->
+									{#if result && result.combinations}
+										{@const allColors = result.combinations
+											.flatMap((c) => c.background_colors || [])
+											.reduce((acc, color) => {
+												if (!acc.find((c) => c.hex === color.hex)) {
+													acc.push(color);
+												}
+												return acc;
+											}, [])}
+
+										{#if allColors.length > 0}
+											<div class="mb-3">
+												<span class="text-xs text-gray-500 mb-2 block">AI Recommended:</span>
+												<div class="flex flex-wrap gap-2">
+													{#each allColors as color}
+														<button
+															type="button"
+															on:click={() => {
+																canvasBackgroundColor = color.hex;
+																renderCanvas();
+															}}
+															class="group relative"
+															title={color.name}
+														>
+															<div
+																class="w-10 h-10 rounded-full border-2 transition-all {canvasBackgroundColor.toLowerCase() ===
+																color.hex.toLowerCase()
+																	? 'border-blue-500 ring-2 ring-blue-200'
+																	: 'border-gray-300 hover:border-gray-400'}"
+																style="background-color: {color.hex};"
+															></div>
+															<span
+																class="absolute -bottom-6 left-1/2 -translate-x-1/2 text-xs text-gray-600 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap"
+															>
+																{color.name}
+															</span>
+														</button>
+													{/each}
+												</div>
+											</div>
+										{/if}
+									{/if}
+
+									<!-- Custom Color Picker -->
+									<div>
+										<span class="text-xs text-gray-500 mb-2 block">Or pick custom:</span>
+										<input
+											id="canvas-bg"
+											type="color"
+											bind:value={canvasBackgroundColor}
+											on:input={() => renderCanvas()}
+											class="h-10 w-full rounded border border-gray-300 cursor-pointer"
+										/>
+									</div>
 								</div>
 
-								<div class="flex items-end gap-2">
+								<!-- Clear Canvas Button -->
+								<div class="flex gap-2">
 									<button
 										type="button"
 										on:click={clearCanvas}

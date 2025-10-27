@@ -26,7 +26,16 @@ STYLE GUIDELINES:
 - Style coherence: Maintain consistent aesthetic (casual, formal, sporty, etc.)
 {{note}}
 
-For each combination, provide clear reasoning WHY these items work together.`;
+BACKGROUND COLOR RECOMMENDATIONS:
+For each combination, recommend 3-5 background colors suitable for Instagram Story (1080x1920) that:
+- Complement the outfit's color palette
+- Enhance visual appeal without overwhelming the outfit
+- Consider contrast for better product visibility
+- Provide variety (neutral, bold, soft options)
+
+For each combination, provide:
+1. Clear reasoning WHY these items work together
+2. Background color recommendations with hex codes and descriptive names`;
 }
 
 /**
@@ -122,9 +131,21 @@ export async function generateOutfits(
                   confidence: {
                     type: 'string',
                     enum: ['low', 'medium', 'high']
+                  },
+                  background_colors: {
+                    type: 'array',
+                    items: {
+                      type: 'object',
+                      properties: {
+                        hex: { type: 'string' },
+                        name: { type: 'string' }
+                      },
+                      required: ['hex', 'name'],
+                      additionalProperties: false
+                    }
                   }
                 },
-                required: ['id', 'items', 'reasoning', 'style_notes', 'confidence'],
+                required: ['id', 'items', 'reasoning', 'style_notes', 'confidence', 'background_colors'],
                 additionalProperties: false
               }
             }
