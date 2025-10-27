@@ -29,26 +29,25 @@
 		y: number;
 		width: number;
 		height: number;
+		rotation: number; // in degrees
 	};
 
-	type Canvas = {
-		id: string;
-		name: string;
-		backgroundColor: string;
-		items: CanvasItem[];
-	};
-
-	let canvases: Canvas[] = [];
-	let activeCanvasIndex = 0;
-	let canvasRefs: Record<string, HTMLCanvasElement> = {};
+	// Single canvas for all combinations
+	let canvasElement: HTMLCanvasElement;
+	let canvasBackgroundColor = '#ffffff';
+	let canvasItems: CanvasItem[] = [];
 	let selectedItemId: string | null = null;
 	let isDragging = false;
 	let isResizing = false;
+	let isRotating = false;
 	let dragStartX = 0;
 	let dragStartY = 0;
 	let resizeCorner = '';
-	// Track which items have been added to which canvas
-	let addedItems: Record<string, Set<string>> = {};
+	let itemStartWidth = 0;
+	let itemStartHeight = 0;
+	let itemStartRotation = 0;
+	// Track which items have been added to canvas
+	let addedItems = new Set<string>();
 
 	const CANVAS_WIDTH = 1080;
 	const CANVAS_HEIGHT = 1920;
@@ -85,17 +84,11 @@
 
 			result = data;
 
-			// Auto-generate canvases based on combination count
+			// Reset canvas when new results come in
 			if (data.combinations && data.combinations.length > 0) {
-				canvases = data.combinations.map((combo: any, index: number) => ({
-					id: `canvas-${index + 1}`,
-					name: `Canvas ${index + 1}`,
-					backgroundColor: '#ffffff',
-					items: []
-				}));
-				activeCanvasIndex = 0;
-				// Reset added items tracking
-				addedItems = {};
+				canvasItems = [];
+				canvasBackgroundColor = '#ffffff';
+				addedItems = new Set<string>();
 			}
 		} catch (err) {
 			error = err instanceof Error ? err.message : 'Unknown error occurred';
@@ -252,17 +245,11 @@
 		return `/assets/${folder}/${prefix}-${itemId}.png`;
 	}
 
-	function addItemToCanvas(itemId: string, canvasIndex: number) {
+	function addItemToCanvas(itemId: string) {
 		const imageSrc = getImagePath(itemId);
-		const canvasId = canvases[canvasIndex].id;
-
-		// Initialize set for this canvas if it doesn't exist
-		if (!addedItems[canvasId]) {
-			addedItems[canvasId] = new Set();
-		}
 
 		// Add to tracking
-		addedItems[canvasId].add(itemId);
+		addedItems.add(itemId);
 		addedItems = addedItems; // Trigger reactivity
 
 		const newItem: CanvasItem = {
@@ -271,78 +258,110 @@
 			x: 100,
 			y: 100,
 			width: 250,
-			height: 250
+			height: 250,
+			rotation: 0
 		};
 
-		canvases[canvasIndex].items = [...canvases[canvasIndex].items, newItem];
-		renderCanvas(canvasIndex);
+		canvasItems = [...canvasItems, newItem];
+		renderCanvas();
 	}
 
-	function isItemAddedToCanvas(itemId: string, canvasIndex: number): boolean {
-		const canvasId = canvases[canvasIndex]?.id;
-		if (!canvasId || !addedItems[canvasId]) return false;
-		return addedItems[canvasId].has(itemId);
+	function isItemAdded(itemId: string): boolean {
+		return addedItems.has(itemId);
 	}
 
-	function addNewCanvas() {
-		const newCanvas: Canvas = {
-			id: `canvas-${canvases.length + 1}`,
-			name: `Canvas ${canvases.length + 1}`,
-			backgroundColor: '#ffffff',
-			items: []
-		};
-		canvases = [...canvases, newCanvas];
-		activeCanvasIndex = canvases.length - 1;
+	function clearCanvas() {
+		canvasItems = [];
+		addedItems = new Set<string>();
+		renderCanvas();
 	}
 
-	function deleteCanvas(index: number) {
-		if (canvases.length === 1) {
-			alert('Cannot delete the last canvas');
-			return;
-		}
-		canvases = canvases.filter((_, i) => i !== index);
-		if (activeCanvasIndex >= canvases.length) {
-			activeCanvasIndex = canvases.length - 1;
-		}
-	}
-
-	function clearCanvas(index: number) {
-		canvases[index].items = [];
-		renderCanvas(index);
-	}
-
-	function renderCanvas(canvasIndex: number) {
-		const canvas = canvases[canvasIndex];
-		const canvasElement = canvasRefs[canvas.id];
+	function renderCanvas() {
 		if (!canvasElement) return;
 
 		const ctx = canvasElement.getContext('2d');
 		if (!ctx) return;
 
 		// Clear and fill background
-		ctx.fillStyle = canvas.backgroundColor;
+		ctx.fillStyle = canvasBackgroundColor;
 		ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
 		// Draw items
-		canvas.items.forEach((item) => {
+		canvasItems.forEach((item) => {
 			const img = new Image();
 			img.src = item.imageSrc;
 			img.onload = () => {
+				ctx.save();
+
+				// Apply rotation
+				const centerX = item.x + item.width / 2;
+				const centerY = item.y + item.height / 2;
+				ctx.translate(centerX, centerY);
+				ctx.rotate((item.rotation * Math.PI) / 180);
+				ctx.translate(-centerX, -centerY);
+
+				// Draw image
 				ctx.drawImage(img, item.x, item.y, item.width, item.height);
 
-				// Draw selection border if selected
+				ctx.restore();
+
+				// Draw controls if selected
 				if (item.id === selectedItemId) {
+					ctx.save();
+
+					// Selection border
 					ctx.strokeStyle = '#3b82f6';
 					ctx.lineWidth = 3;
 					ctx.strokeRect(item.x, item.y, item.width, item.height);
+
+					// Resize handles (4 corners)
+					const handleSize = 10;
+					ctx.fillStyle = '#3b82f6';
+					// Top-left
+					ctx.fillRect(item.x - handleSize / 2, item.y - handleSize / 2, handleSize, handleSize);
+					// Top-right
+					ctx.fillRect(
+						item.x + item.width - handleSize / 2,
+						item.y - handleSize / 2,
+						handleSize,
+						handleSize
+					);
+					// Bottom-left
+					ctx.fillRect(
+						item.x - handleSize / 2,
+						item.y + item.height - handleSize / 2,
+						handleSize,
+						handleSize
+					);
+					// Bottom-right
+					ctx.fillRect(
+						item.x + item.width - handleSize / 2,
+						item.y + item.height - handleSize / 2,
+						handleSize,
+						handleSize
+					);
+
+					// Rotation handle (top center)
+					const rotateHandleY = item.y - 30;
+					ctx.beginPath();
+					ctx.arc(centerX, rotateHandleY, 8, 0, Math.PI * 2);
+					ctx.fill();
+
+					// Line connecting to rotation handle
+					ctx.beginPath();
+					ctx.moveTo(centerX, item.y);
+					ctx.lineTo(centerX, rotateHandleY);
+					ctx.strokeStyle = '#3b82f6';
+					ctx.lineWidth = 2;
+					ctx.stroke();
+
+					ctx.restore();
 				}
 			};
 		});
 	}
 
-	function handleCanvasClick(event: MouseEvent, canvasIndex: number) {
-		const canvas = canvases[canvasIndex];
-		const canvasElement = canvasRefs[canvas.id];
+	function handleCanvasClick(event: MouseEvent) {
 		if (!canvasElement) return;
 
 		const rect = canvasElement.getBoundingClientRect();
@@ -351,28 +370,69 @@
 		const x = (event.clientX - rect.left) * scaleX;
 		const y = (event.clientY - rect.top) * scaleY;
 
+		// Check if clicked on selected item's handles
+		if (selectedItemId) {
+			const selectedItem = canvasItems.find((i) => i.id === selectedItemId);
+			if (selectedItem) {
+				const handleSize = 10;
+				const tolerance = handleSize;
+
+				// Check rotation handle
+				const centerX = selectedItem.x + selectedItem.width / 2;
+				const rotateHandleY = selectedItem.y - 30;
+				const distToRotate = Math.sqrt(Math.pow(x - centerX, 2) + Math.pow(y - rotateHandleY, 2));
+				if (distToRotate <= 10) {
+					isRotating = true;
+					dragStartX = x;
+					dragStartY = y;
+					itemStartRotation = selectedItem.rotation;
+					return;
+				}
+
+				// Check resize handles (corners)
+				const corners = [
+					{ name: 'tl', x: selectedItem.x, y: selectedItem.y },
+					{ name: 'tr', x: selectedItem.x + selectedItem.width, y: selectedItem.y },
+					{ name: 'bl', x: selectedItem.x, y: selectedItem.y + selectedItem.height },
+					{
+						name: 'br',
+						x: selectedItem.x + selectedItem.width,
+						y: selectedItem.y + selectedItem.height
+					}
+				];
+
+				for (const corner of corners) {
+					if (Math.abs(x - corner.x) <= tolerance && Math.abs(y - corner.y) <= tolerance) {
+						isResizing = true;
+						resizeCorner = corner.name;
+						dragStartX = x;
+						dragStartY = y;
+						itemStartWidth = selectedItem.width;
+						itemStartHeight = selectedItem.height;
+						return;
+					}
+				}
+			}
+		}
+
 		// Find clicked item (reverse order to get topmost)
-		for (let i = canvas.items.length - 1; i >= 0; i--) {
-			const item = canvas.items[i];
+		for (let i = canvasItems.length - 1; i >= 0; i--) {
+			const item = canvasItems[i];
 			if (x >= item.x && x <= item.x + item.width && y >= item.y && y <= item.y + item.height) {
 				selectedItemId = item.id;
 				isDragging = true;
 				dragStartX = x - item.x;
 				dragStartY = y - item.y;
-				renderCanvas(canvasIndex);
+				renderCanvas();
 				return;
 			}
 		}
 
 		selectedItemId = null;
-		renderCanvas(canvasIndex);
+		renderCanvas();
 	}
 
-	function handleCanvasMouseMove(event: MouseEvent, canvasIndex: number) {
-		if (!isDragging || !selectedItemId) return;
-
-		const canvas = canvases[canvasIndex];
-		const canvasElement = canvasRefs[canvas.id];
+	function handleCanvasMouseMove(event: MouseEvent) {
 		if (!canvasElement) return;
 
 		const rect = canvasElement.getBoundingClientRect();
@@ -381,25 +441,66 @@
 		const x = (event.clientX - rect.left) * scaleX;
 		const y = (event.clientY - rect.top) * scaleY;
 
-		const item = canvas.items.find((i) => i.id === selectedItemId);
-		if (item) {
+		const item = canvasItems.find((i) => i.id === selectedItemId);
+		if (!item) return;
+
+		if (isRotating) {
+			// Calculate angle from center of item
+			const centerX = item.x + item.width / 2;
+			const centerY = item.y + item.height / 2;
+			const angle = (Math.atan2(y - centerY, x - centerX) * 180) / Math.PI;
+			item.rotation = angle + 90; // Adjust for initial orientation
+			renderCanvas();
+		} else if (isResizing) {
+			const dx = x - dragStartX;
+			const dy = y - dragStartY;
+
+			if (resizeCorner === 'br') {
+				// Bottom-right: increase width and height
+				item.width = Math.max(50, itemStartWidth + dx);
+				item.height = Math.max(50, itemStartHeight + dy);
+			} else if (resizeCorner === 'bl') {
+				// Bottom-left: change x and width, increase height
+				const newWidth = Math.max(50, itemStartWidth - dx);
+				item.x = item.x + (item.width - newWidth);
+				item.width = newWidth;
+				item.height = Math.max(50, itemStartHeight + dy);
+			} else if (resizeCorner === 'tr') {
+				// Top-right: increase width, change y and height
+				item.width = Math.max(50, itemStartWidth + dx);
+				const newHeight = Math.max(50, itemStartHeight - dy);
+				item.y = item.y + (item.height - newHeight);
+				item.height = newHeight;
+			} else if (resizeCorner === 'tl') {
+				// Top-left: change both x,y and width,height
+				const newWidth = Math.max(50, itemStartWidth - dx);
+				const newHeight = Math.max(50, itemStartHeight - dy);
+				item.x = item.x + (item.width - newWidth);
+				item.y = item.y + (item.height - newHeight);
+				item.width = newWidth;
+				item.height = newHeight;
+			}
+
+			renderCanvas();
+		} else if (isDragging) {
 			item.x = Math.max(0, Math.min(x - dragStartX, CANVAS_WIDTH - item.width));
 			item.y = Math.max(0, Math.min(y - dragStartY, CANVAS_HEIGHT - item.height));
-			renderCanvas(canvasIndex);
+			renderCanvas();
 		}
 	}
 
 	function handleCanvasMouseUp() {
 		isDragging = false;
+		isResizing = false;
+		isRotating = false;
 	}
 
 	function deleteSelectedItem() {
 		if (!selectedItemId) return;
 
-		const canvas = canvases[activeCanvasIndex];
-		canvas.items = canvas.items.filter((item) => item.id !== selectedItemId);
+		canvasItems = canvasItems.filter((item) => item.id !== selectedItemId);
 		selectedItemId = null;
-		renderCanvas(activeCanvasIndex);
+		renderCanvas();
 	}
 
 	function handleKeyDown(event: KeyboardEvent) {
@@ -411,25 +512,35 @@
 		}
 	}
 
-	async function exportCanvas(canvasIndex: number, format: 'png' | 'jpeg') {
-		const canvas = canvases[canvasIndex];
-		const canvasElement = canvasRefs[canvas.id];
+	async function exportCanvas(format: 'png' | 'jpeg') {
 		if (!canvasElement) return;
 
 		const ctx = canvasElement.getContext('2d');
 		if (!ctx) return;
 
 		// Render final canvas
-		ctx.fillStyle = canvas.backgroundColor;
+		ctx.fillStyle = canvasBackgroundColor;
 		ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
-		// Draw all items
-		for (const item of canvas.items) {
+		// Draw all items with rotation
+		for (const item of canvasItems) {
 			const img = new Image();
 			img.src = item.imageSrc;
 			await new Promise((resolve) => {
 				img.onload = () => {
+					ctx.save();
+
+					// Apply rotation
+					const centerX = item.x + item.width / 2;
+					const centerY = item.y + item.height / 2;
+					ctx.translate(centerX, centerY);
+					ctx.rotate((item.rotation * Math.PI) / 180);
+					ctx.translate(-centerX, -centerY);
+
+					// Draw image
 					ctx.drawImage(img, item.x, item.y, item.width, item.height);
+
+					ctx.restore();
 					resolve(null);
 				};
 			});
@@ -487,8 +598,8 @@
 	});
 
 	// Reactive statements
-	$: if (canvases.length > 0) {
-		setTimeout(() => renderCanvas(activeCanvasIndex), 0);
+	$: if (canvasElement) {
+		setTimeout(() => renderCanvas(), 0);
 	}
 
 	// Auto-load CSV when gender changes
@@ -868,9 +979,15 @@
 										</span>
 									</div>
 
-									<div class="grid grid-cols-1 gap-4 mb-6">
+									<div class="flex gap-4 overflow-x-auto pb-4 mb-6 snap-x snap-mandatory">
 										{#each combo.items as item}
-											<div class="border border-gray-200 rounded-lg p-4">
+											<div
+												class="border rounded-lg p-4 flex-shrink-0 w-64 transition-all snap-start {isItemAdded(
+													item.id
+												)
+													? 'border-green-500 bg-green-50 ring-2 ring-green-300'
+													: 'border-gray-200'}"
+											>
 												<div class="mb-3">
 													<img
 														src={getImagePath(item.id)}
@@ -897,21 +1014,21 @@
 													<p class="text-sm text-gray-600 mb-2">Color: {item.color}</p>
 												{/if}
 												<p class="text-sm text-gray-800 leading-relaxed mb-3">{item.reason}</p>
-												{#if isItemAddedToCanvas(item.id, index)}
+												{#if isItemAdded(item.id)}
 													<button
 														type="button"
 														disabled
 														class="w-full bg-green-600 text-white text-sm font-semibold py-2 px-3 rounded cursor-default"
 													>
-														Added
+														Added to Canvas
 													</button>
 												{:else}
 													<button
 														type="button"
-														on:click={() => addItemToCanvas(item.id, index)}
+														on:click={() => addItemToCanvas(item.id)}
 														class="w-full bg-blue-600 text-white text-sm font-semibold py-2 px-3 rounded hover:bg-blue-700 transition-colors"
 													>
-														Add to Canvas {index + 1}
+														Add to Canvas
 													</button>
 												{/if}
 											</div>
@@ -932,116 +1049,81 @@
 					</div>
 
 					<!-- Canvas Moodboard Builder -->
-					{#if canvases.length > 0}
+					{#if result}
 						<div class="bg-white rounded-lg shadow-sm p-6 lg:sticky lg:top-6 lg:max-h-[1200px] lg:overflow-y-auto">
 							<div class="flex items-center justify-between mb-6">
 								<h2 class="text-xl font-semibold text-gray-900">Moodboard Builder</h2>
-								<button
-									type="button"
-									on:click={addNewCanvas}
-									class="bg-gray-600 text-white text-sm font-semibold py-2 px-4 rounded hover:bg-gray-700 transition-colors"
-								>
-									Add Canvas
-								</button>
-							</div>
-
-							<!-- Canvas Tabs -->
-							<div class="flex gap-2 mb-6 overflow-x-auto pb-2">
-								{#each canvases as canvas, index}
-									<button
-										type="button"
-										on:click={() => (activeCanvasIndex = index)}
-										class="px-4 py-2 rounded whitespace-nowrap font-medium text-sm transition-colors {activeCanvasIndex ===
-										index
-											? 'bg-blue-600 text-white'
-											: 'bg-gray-100 text-gray-700 hover:bg-gray-200'}"
-									>
-										{canvas.name}
-									</button>
-								{/each}
 							</div>
 
 							<!-- Canvas Controls -->
-							{#if canvases[activeCanvasIndex]}
-								<div class="grid md:grid-cols-2 gap-4 mb-6">
-									<div>
-										<label
-											for="canvas-bg-{activeCanvasIndex}"
-											class="block text-sm font-medium text-gray-700 mb-2"
-										>
-											Background Color
-										</label>
-										<input
-											id="canvas-bg-{activeCanvasIndex}"
-											type="color"
-											bind:value={canvases[activeCanvasIndex].backgroundColor}
-											on:input={() => renderCanvas(activeCanvasIndex)}
-											class="h-10 w-full rounded border border-gray-300 cursor-pointer"
-										/>
-									</div>
-
-									<div class="flex items-end gap-2">
-										<button
-											type="button"
-											on:click={() => clearCanvas(activeCanvasIndex)}
-											class="flex-1 bg-yellow-600 text-white text-sm font-semibold py-2 px-4 rounded hover:bg-yellow-700 transition-colors"
-										>
-											Clear Canvas
-										</button>
-										<button
-											type="button"
-											on:click={() => deleteCanvas(activeCanvasIndex)}
-											class="flex-1 bg-red-600 text-white text-sm font-semibold py-2 px-4 rounded hover:bg-red-700 transition-colors"
-										>
-											Delete Canvas
-										</button>
-									</div>
+							<div class="grid md:grid-cols-2 gap-4 mb-6">
+								<div>
+									<label for="canvas-bg" class="block text-sm font-medium text-gray-700 mb-2">
+										Background Color
+									</label>
+									<input
+										id="canvas-bg"
+										type="color"
+										bind:value={canvasBackgroundColor}
+										on:input={() => renderCanvas()}
+										class="h-10 w-full rounded border border-gray-300 cursor-pointer"
+									/>
 								</div>
 
-								<!-- Canvas Display -->
-								<div class="border-2 border-gray-300 rounded-lg overflow-hidden mb-4">
-									<canvas
-										bind:this={canvasRefs[canvases[activeCanvasIndex].id]}
-										width={CANVAS_WIDTH}
-										height={CANVAS_HEIGHT}
-										on:mousedown={(e) => handleCanvasClick(e, activeCanvasIndex)}
-										on:mousemove={(e) => handleCanvasMouseMove(e, activeCanvasIndex)}
-										on:mouseup={handleCanvasMouseUp}
-										on:mouseleave={handleCanvasMouseUp}
-										class="w-full h-auto max-h-[800px] cursor-pointer"
-										style="display: block;"
-									></canvas>
-								</div>
-
-								<div class="text-sm text-gray-600 mb-4">
-									<p>
-										<strong>Instructions:</strong> Click "Add to Canvas" buttons above to add items. Drag
-										items on canvas to reposition. Press Delete/Backspace to remove selected item.
-									</p>
-									<p class="mt-1">
-										Canvas size: 1080x1920 (Instagram Story) • Items: {canvases[activeCanvasIndex]
-											.items.length}
-									</p>
-								</div>
-
-								<!-- Export Controls -->
-								<div class="flex gap-2">
+								<div class="flex items-end gap-2">
 									<button
 										type="button"
-										on:click={() => exportCanvas(activeCanvasIndex, 'png')}
-										class="flex-1 bg-green-600 text-white font-semibold py-3 px-4 rounded hover:bg-green-700 transition-colors"
+										on:click={clearCanvas}
+										class="flex-1 bg-red-600 text-white text-sm font-semibold py-2 px-4 rounded hover:bg-red-700 transition-colors"
 									>
-										Export as PNG
-									</button>
-									<button
-										type="button"
-										on:click={() => exportCanvas(activeCanvasIndex, 'jpeg')}
-										class="flex-1 bg-green-600 text-white font-semibold py-3 px-4 rounded hover:bg-green-700 transition-colors"
-									>
-										Export as JPEG
+										Clear Canvas
 									</button>
 								</div>
-							{/if}
+							</div>
+
+							<!-- Canvas Display -->
+							<div class="border-2 border-gray-300 rounded-lg overflow-hidden mb-4">
+								<canvas
+									bind:this={canvasElement}
+									width={CANVAS_WIDTH}
+									height={CANVAS_HEIGHT}
+									on:mousedown={handleCanvasClick}
+									on:mousemove={handleCanvasMouseMove}
+									on:mouseup={handleCanvasMouseUp}
+									on:mouseleave={handleCanvasMouseUp}
+									class="w-full h-auto max-h-[800px] cursor-pointer"
+									style="display: block;"
+								></canvas>
+							</div>
+
+							<div class="text-sm text-gray-600 mb-4">
+								<p>
+									<strong>Instructions:</strong> Click "Add to Canvas" buttons to add items. Drag items
+									to move, drag corners to resize, drag top circle to rotate. Press Delete/Backspace to
+									remove selected item.
+								</p>
+								<p class="mt-1">
+									Canvas size: 1080x1920 (Instagram Story) • Items: {canvasItems.length}
+								</p>
+							</div>
+
+							<!-- Export Controls -->
+							<div class="flex gap-2">
+								<button
+									type="button"
+									on:click={() => exportCanvas('png')}
+									class="flex-1 bg-green-600 text-white font-semibold py-3 px-4 rounded hover:bg-green-700 transition-colors"
+								>
+									Export as PNG
+								</button>
+								<button
+									type="button"
+									on:click={() => exportCanvas('jpeg')}
+									class="flex-1 bg-green-600 text-white font-semibold py-3 px-4 rounded hover:bg-green-700 transition-colors"
+								>
+									Export as JPEG
+								</button>
+							</div>
 						</div>
 					{/if}
 				</div>
