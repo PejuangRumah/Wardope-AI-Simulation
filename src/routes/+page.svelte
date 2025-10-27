@@ -45,6 +45,8 @@
 	let dragStartX = 0;
 	let dragStartY = 0;
 	let resizeCorner = '';
+	// Track which items have been added to which canvas
+	let addedItems: Record<string, Set<string>> = {};
 
 	const CANVAS_WIDTH = 1080;
 	const CANVAS_HEIGHT = 1920;
@@ -90,6 +92,8 @@
 					items: []
 				}));
 				activeCanvasIndex = 0;
+				// Reset added items tracking
+				addedItems = {};
 			}
 		} catch (err) {
 			error = err instanceof Error ? err.message : 'Unknown error occurred';
@@ -225,17 +229,34 @@
 
 	function addItemToCanvas(itemId: string, canvasIndex: number) {
 		const imageSrc = getImagePath(itemId);
+		const canvasId = canvases[canvasIndex].id;
+
+		// Initialize set for this canvas if it doesn't exist
+		if (!addedItems[canvasId]) {
+			addedItems[canvasId] = new Set();
+		}
+
+		// Add to tracking
+		addedItems[canvasId].add(itemId);
+		addedItems = addedItems; // Trigger reactivity
+
 		const newItem: CanvasItem = {
 			id: `item-${itemId}-${Date.now()}`,
 			imageSrc,
 			x: 100,
 			y: 100,
-			width: 200,
-			height: 300
+			width: 250,
+			height: 250
 		};
 
 		canvases[canvasIndex].items = [...canvases[canvasIndex].items, newItem];
 		renderCanvas(canvasIndex);
+	}
+
+	function isItemAddedToCanvas(itemId: string, canvasIndex: number): boolean {
+		const canvasId = canvases[canvasIndex]?.id;
+		if (!canvasId || !addedItems[canvasId]) return false;
+		return addedItems[canvasId].has(itemId);
 	}
 
 	function addNewCanvas() {
@@ -389,20 +410,31 @@
 			});
 		}
 
-		// Add watermark
+		// Add watermark with circular clipping
 		const logo = new Image();
 		logo.src = '/assets/logo/logo-wardope.png';
 		await new Promise((resolve) => {
 			logo.onload = () => {
+				ctx.save(); // Save current context state
+
+				// Set position and create circular clipping path
+				const logoX = CANVAS_WIDTH - LOGO_SIZE - 20;
+				const logoY = CANVAS_HEIGHT - LOGO_SIZE - 20;
+				const centerX = logoX + LOGO_SIZE / 2;
+				const centerY = logoY + LOGO_SIZE / 2;
+				const radius = LOGO_SIZE / 2;
+
+				// Create circular clipping region
+				ctx.beginPath();
+				ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+				ctx.closePath();
+				ctx.clip();
+
+				// Draw logo within circular boundary
 				ctx.globalAlpha = 0.8;
-				ctx.drawImage(
-					logo,
-					CANVAS_WIDTH - LOGO_SIZE - 20,
-					CANVAS_HEIGHT - LOGO_SIZE - 20,
-					LOGO_SIZE,
-					LOGO_SIZE
-				);
-				ctx.globalAlpha = 1.0;
+				ctx.drawImage(logo, logoX, logoY, LOGO_SIZE, LOGO_SIZE);
+
+				ctx.restore(); // Restore context to remove clipping
 				resolve(null);
 			};
 		});
@@ -710,9 +742,11 @@
 					</div>
 				</div>
 
-				<!-- Combinations -->
-				<div class="bg-white rounded-lg shadow-sm p-6">
-					<h2 class="text-xl font-semibold text-gray-900 mb-6">Outfit Recommendations</h2>
+				<!-- Side-by-side layout for Combinations and Canvas -->
+				<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+					<!-- Combinations -->
+					<div class="bg-white rounded-lg shadow-sm p-6 lg:max-h-[1200px] lg:overflow-y-auto">
+						<h2 class="text-xl font-semibold text-gray-900 mb-6">Outfit Recommendations</h2>
 
 					{#if result.combinations.length === 0}
 						<div class="bg-yellow-50 border border-yellow-200 rounded-lg p-6 text-center">
@@ -738,7 +772,7 @@
 										</span>
 									</div>
 
-									<div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+									<div class="grid grid-cols-1 gap-4 mb-6">
 										{#each combo.items as item}
 											<div class="border border-gray-200 rounded-lg p-4">
 												<div class="mb-3">
@@ -767,13 +801,23 @@
 													<p class="text-sm text-gray-600 mb-2">Color: {item.color}</p>
 												{/if}
 												<p class="text-sm text-gray-800 leading-relaxed mb-3">{item.reason}</p>
-												<button
-													type="button"
-													on:click={() => addItemToCanvas(item.id, index)}
-													class="w-full bg-blue-600 text-white text-sm font-semibold py-2 px-3 rounded hover:bg-blue-700 transition-colors"
-												>
-													Add to Canvas {index + 1}
-												</button>
+												{#if isItemAddedToCanvas(item.id, index)}
+													<button
+														type="button"
+														disabled
+														class="w-full bg-green-600 text-white text-sm font-semibold py-2 px-3 rounded cursor-default"
+													>
+														Added
+													</button>
+												{:else}
+													<button
+														type="button"
+														on:click={() => addItemToCanvas(item.id, index)}
+														class="w-full bg-blue-600 text-white text-sm font-semibold py-2 px-3 rounded hover:bg-blue-700 transition-colors"
+													>
+														Add to Canvas {index + 1}
+													</button>
+												{/if}
 											</div>
 										{/each}
 									</div>
@@ -789,121 +833,123 @@
 							{/each}
 						</div>
 					{/if}
-				</div>
-
-				<!-- Canvas Moodboard Builder -->
-				{#if canvases.length > 0}
-					<div class="bg-white rounded-lg shadow-sm p-6">
-						<div class="flex items-center justify-between mb-6">
-							<h2 class="text-xl font-semibold text-gray-900">Moodboard Builder</h2>
-							<button
-								type="button"
-								on:click={addNewCanvas}
-								class="bg-gray-600 text-white text-sm font-semibold py-2 px-4 rounded hover:bg-gray-700 transition-colors"
-							>
-								Add Canvas
-							</button>
-						</div>
-
-						<!-- Canvas Tabs -->
-						<div class="flex gap-2 mb-6 overflow-x-auto pb-2">
-							{#each canvases as canvas, index}
-								<button
-									type="button"
-									on:click={() => (activeCanvasIndex = index)}
-									class="px-4 py-2 rounded whitespace-nowrap font-medium text-sm transition-colors {activeCanvasIndex ===
-									index
-										? 'bg-blue-600 text-white'
-										: 'bg-gray-100 text-gray-700 hover:bg-gray-200'}"
-								>
-									{canvas.name}
-								</button>
-							{/each}
-						</div>
-
-						<!-- Canvas Controls -->
-						{#if canvases[activeCanvasIndex]}
-							<div class="grid md:grid-cols-2 gap-4 mb-6">
-								<div>
-									<label
-										for="canvas-bg-{activeCanvasIndex}"
-										class="block text-sm font-medium text-gray-700 mb-2"
-									>
-										Background Color
-									</label>
-									<input
-										id="canvas-bg-{activeCanvasIndex}"
-										type="color"
-										bind:value={canvases[activeCanvasIndex].backgroundColor}
-										on:input={() => renderCanvas(activeCanvasIndex)}
-										class="h-10 w-full rounded border border-gray-300 cursor-pointer"
-									/>
-								</div>
-
-								<div class="flex items-end gap-2">
-									<button
-										type="button"
-										on:click={() => clearCanvas(activeCanvasIndex)}
-										class="flex-1 bg-yellow-600 text-white text-sm font-semibold py-2 px-4 rounded hover:bg-yellow-700 transition-colors"
-									>
-										Clear Canvas
-									</button>
-									<button
-										type="button"
-										on:click={() => deleteCanvas(activeCanvasIndex)}
-										class="flex-1 bg-red-600 text-white text-sm font-semibold py-2 px-4 rounded hover:bg-red-700 transition-colors"
-									>
-										Delete Canvas
-									</button>
-								</div>
-							</div>
-
-							<!-- Canvas Display -->
-							<div class="border-2 border-gray-300 rounded-lg overflow-hidden mb-4">
-								<canvas
-									bind:this={canvasRefs[canvases[activeCanvasIndex].id]}
-									width={CANVAS_WIDTH}
-									height={CANVAS_HEIGHT}
-									on:mousedown={(e) => handleCanvasClick(e, activeCanvasIndex)}
-									on:mousemove={(e) => handleCanvasMouseMove(e, activeCanvasIndex)}
-									on:mouseup={handleCanvasMouseUp}
-									on:mouseleave={handleCanvasMouseUp}
-									class="w-full h-auto max-h-[800px] cursor-pointer"
-									style="display: block;"
-								></canvas>
-							</div>
-
-							<div class="text-sm text-gray-600 mb-4">
-								<p>
-									<strong>Instructions:</strong> Click "Add to Canvas" buttons above to add items. Drag
-									items on canvas to reposition. Press Delete/Backspace to remove selected item.
-								</p>
-								<p class="mt-1">
-									Canvas size: 1080x1920 (Instagram Story) • Items: {canvases[activeCanvasIndex]
-										.items.length}
-								</p>
-							</div>
-
-							<!-- Export Controls -->
-							<div class="flex gap-2">
-								<button
-									type="button"
-									on:click={() => exportCanvas(activeCanvasIndex, 'png')}
-									class="flex-1 bg-green-600 text-white font-semibold py-3 px-4 rounded hover:bg-green-700 transition-colors"
-								>
-									Export as PNG
-								</button>
-								<button
-									type="button"
-									on:click={() => exportCanvas(activeCanvasIndex, 'jpeg')}
-									class="flex-1 bg-green-600 text-white font-semibold py-3 px-4 rounded hover:bg-green-700 transition-colors"
-								>
-									Export as JPEG
-								</button>
-							</div>
-						{/if}
 					</div>
-				{/if}
+
+					<!-- Canvas Moodboard Builder -->
+					{#if canvases.length > 0}
+						<div class="bg-white rounded-lg shadow-sm p-6 lg:sticky lg:top-6 lg:max-h-[1200px] lg:overflow-y-auto">
+							<div class="flex items-center justify-between mb-6">
+								<h2 class="text-xl font-semibold text-gray-900">Moodboard Builder</h2>
+								<button
+									type="button"
+									on:click={addNewCanvas}
+									class="bg-gray-600 text-white text-sm font-semibold py-2 px-4 rounded hover:bg-gray-700 transition-colors"
+								>
+									Add Canvas
+								</button>
+							</div>
+
+							<!-- Canvas Tabs -->
+							<div class="flex gap-2 mb-6 overflow-x-auto pb-2">
+								{#each canvases as canvas, index}
+									<button
+										type="button"
+										on:click={() => (activeCanvasIndex = index)}
+										class="px-4 py-2 rounded whitespace-nowrap font-medium text-sm transition-colors {activeCanvasIndex ===
+										index
+											? 'bg-blue-600 text-white'
+											: 'bg-gray-100 text-gray-700 hover:bg-gray-200'}"
+									>
+										{canvas.name}
+									</button>
+								{/each}
+							</div>
+
+							<!-- Canvas Controls -->
+							{#if canvases[activeCanvasIndex]}
+								<div class="grid md:grid-cols-2 gap-4 mb-6">
+									<div>
+										<label
+											for="canvas-bg-{activeCanvasIndex}"
+											class="block text-sm font-medium text-gray-700 mb-2"
+										>
+											Background Color
+										</label>
+										<input
+											id="canvas-bg-{activeCanvasIndex}"
+											type="color"
+											bind:value={canvases[activeCanvasIndex].backgroundColor}
+											on:input={() => renderCanvas(activeCanvasIndex)}
+											class="h-10 w-full rounded border border-gray-300 cursor-pointer"
+										/>
+									</div>
+
+									<div class="flex items-end gap-2">
+										<button
+											type="button"
+											on:click={() => clearCanvas(activeCanvasIndex)}
+											class="flex-1 bg-yellow-600 text-white text-sm font-semibold py-2 px-4 rounded hover:bg-yellow-700 transition-colors"
+										>
+											Clear Canvas
+										</button>
+										<button
+											type="button"
+											on:click={() => deleteCanvas(activeCanvasIndex)}
+											class="flex-1 bg-red-600 text-white text-sm font-semibold py-2 px-4 rounded hover:bg-red-700 transition-colors"
+										>
+											Delete Canvas
+										</button>
+									</div>
+								</div>
+
+								<!-- Canvas Display -->
+								<div class="border-2 border-gray-300 rounded-lg overflow-hidden mb-4">
+									<canvas
+										bind:this={canvasRefs[canvases[activeCanvasIndex].id]}
+										width={CANVAS_WIDTH}
+										height={CANVAS_HEIGHT}
+										on:mousedown={(e) => handleCanvasClick(e, activeCanvasIndex)}
+										on:mousemove={(e) => handleCanvasMouseMove(e, activeCanvasIndex)}
+										on:mouseup={handleCanvasMouseUp}
+										on:mouseleave={handleCanvasMouseUp}
+										class="w-full h-auto max-h-[800px] cursor-pointer"
+										style="display: block;"
+									></canvas>
+								</div>
+
+								<div class="text-sm text-gray-600 mb-4">
+									<p>
+										<strong>Instructions:</strong> Click "Add to Canvas" buttons above to add items. Drag
+										items on canvas to reposition. Press Delete/Backspace to remove selected item.
+									</p>
+									<p class="mt-1">
+										Canvas size: 1080x1920 (Instagram Story) • Items: {canvases[activeCanvasIndex]
+											.items.length}
+									</p>
+								</div>
+
+								<!-- Export Controls -->
+								<div class="flex gap-2">
+									<button
+										type="button"
+										on:click={() => exportCanvas(activeCanvasIndex, 'png')}
+										class="flex-1 bg-green-600 text-white font-semibold py-3 px-4 rounded hover:bg-green-700 transition-colors"
+									>
+										Export as PNG
+									</button>
+									<button
+										type="button"
+										on:click={() => exportCanvas(activeCanvasIndex, 'jpeg')}
+										class="flex-1 bg-green-600 text-white font-semibold py-3 px-4 rounded hover:bg-green-700 transition-colors"
+									>
+										Export as JPEG
+									</button>
+								</div>
+							{/if}
+						</div>
+					{/if}
+				</div>
+				<!-- End of side-by-side grid -->
 			</div>
 		{/if}
 	</div>
