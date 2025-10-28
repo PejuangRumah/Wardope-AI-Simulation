@@ -90,6 +90,22 @@
 	$: totalCostIdr =
 		(analysisUsage?.cost_idr || 0) + (improvementUsage?.cost_idr || 0);
 
+	// DEBUG: Log cost calculation on frontend
+	$: if (analysisUsage || improvementUsage) {
+		console.log('🔍 FRONTEND COST DEBUG:', {
+			analysisUsage,
+			improvementUsage,
+			totalCostIdr,
+			totalCostIdrType: typeof totalCostIdr,
+			comparisonResult: totalCostIdr <= 2000,
+			formattedCost: totalCostIdr.toLocaleString('id-ID'),
+			breakdown: {
+				analysis: analysisUsage?.cost_idr || 0,
+				improvement: improvementUsage?.cost_idr || 0
+			}
+		});
+	}
+
 	// Handle file upload
 	function handleFileSelect(event: Event) {
 		const target = event.target as HTMLInputElement;
@@ -959,25 +975,26 @@
 									<div class="flex-1">
 										<div class="flex items-center gap-2 mb-1">
 											<ImageIcon class="w-4 h-4 text-purple-600" />
-											<h4 class="text-sm font-semibold text-gray-900">Professional Image Generation (DALL-E 3)</h4>
+											<h4 class="text-sm font-semibold text-gray-900">Professional Image Generation (gpt-image-1)</h4>
 											<span class="px-2 py-0.5 bg-purple-600 text-white text-xs font-semibold rounded">AI Generation</span>
 										</div>
 										<p class="text-xs text-gray-600 mb-2">
-											DALL-E 3 creates professional e-commerce style product photos based on analyzed item data. Uses customizable prompt template for consistent branding.
+											GPT Image (gpt-image-1) creates professional e-commerce style product photos with transparent backgrounds based on analyzed item data. Uses customizable prompt template for consistent branding.
 										</p>
 										<div class="p-2 bg-white border border-purple-200 rounded text-xs mb-2">
 											<div class="font-medium text-gray-700 mb-1">Generation Parameters:</div>
 											<ul class="space-y-0.5 text-gray-600">
-												<li>• Model: DALL-E 3</li>
+												<li>• Model: gpt-image-1</li>
 												<li>• Size: 1024x1024 (square format, 1:1 ratio)</li>
-												<li>• Format: PNG without background</li>
-												<li>• Quality: Low (Rp 400), Medium (Rp 600), or High (Rp 1,200)</li>
+												<li>• Background: transparent (PNG with no background)</li>
+												<li>• Output Format: png (supports transparency)</li>
+												<li>• Quality: Low (Rp 150), Medium (Rp 600), or High (Rp 2,550)</li>
 											</ul>
 										</div>
 										<div class="p-2 bg-white border border-purple-200 rounded text-xs mb-2">
 											<div class="font-medium text-gray-700 mb-1">What It Generates:</div>
 											<ul class="space-y-0.5 text-gray-600">
-												<li>• Professional product photo with clean white/neutral background</li>
+												<li>• Professional product photo with transparent PNG background (no background)</li>
 												<li>• Front-facing view with centered composition</li>
 												<li>• Studio-quality lighting without harsh shadows</li>
 												<li>• Catalog-ready presentation for premium e-commerce</li>
@@ -990,7 +1007,7 @@
 											</span>
 											<span class="flex items-center gap-1 text-gray-700">
 												<DollarSign class="w-3.5 h-3.5" />
-												Low: $0.027 (Rp 400) | Medium: $0.04 (Rp 600) | High: $0.08 (Rp 1,200)
+												Low: $0.01 (Rp 150) | Medium: $0.04 (Rp 600) | High: $0.17 (Rp 2,550)
 											</span>
 										</div>
 									</div>
@@ -1046,7 +1063,7 @@
 								</div>
 								<div class="flex justify-between">
 									<span>Improvement Low:</span>
-									<span class="font-mono">Rp 400</span>
+									<span class="font-mono">Rp 150</span>
 								</div>
 								<div class="flex justify-between">
 									<span>Improvement Medium:</span>
@@ -1054,11 +1071,11 @@
 								</div>
 								<div class="flex justify-between">
 									<span>Improvement High:</span>
-									<span class="font-mono">Rp 1,200</span>
+									<span class="font-mono">Rp 2,550</span>
 								</div>
 								<div class="flex justify-between pt-2 border-t border-gray-300 font-semibold text-gray-900">
 									<span>Total (Low):</span>
-									<span class="font-mono">Rp 750-900</span>
+									<span class="font-mono">Rp 500-650</span>
 								</div>
 								<div class="flex justify-between font-semibold text-gray-900">
 									<span>Total (Medium):</span>
@@ -1066,7 +1083,7 @@
 								</div>
 								<div class="flex justify-between font-semibold text-gray-900">
 									<span>Total (High):</span>
-									<span class="font-mono">Rp 1,550-1,700</span>
+									<span class="font-mono">Rp 2,900-3,050</span>
 								</div>
 							</div>
 						</div>
@@ -1178,7 +1195,7 @@
 										value="low"
 										class="sr-only"
 									/>
-									<span class="font-medium text-sm">Low (Rp 400)</span>
+									<span class="font-medium text-sm">Low (Rp 150)</span>
 								</label>
 								<label class="relative flex items-center justify-center px-4 py-3 border rounded-lg cursor-pointer {quality === 'medium' ? 'border-blue-600 bg-blue-50 text-blue-700' : 'border-gray-300 hover:border-gray-400'}">
 									<input
@@ -1196,7 +1213,7 @@
 										value="high"
 										class="sr-only"
 									/>
-									<span class="font-medium text-sm">High (Rp 1,200)</span>
+									<span class="font-medium text-sm">High (Rp 2,550)</span>
 								</label>
 							</div>
 						</div>
@@ -1247,7 +1264,7 @@
 								class="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-xs resize-none"
 							></textarea>
 							<p class="mt-1 text-xs text-gray-500">
-								This prompt guides GPT-Image-1 to generate professional e-commerce style product photos. The template uses item data from analysis.
+								This prompt guides gpt-image-1 to generate professional e-commerce style product photos with transparent backgrounds. The template uses item data from analysis.
 							</p>
 						</div>
 

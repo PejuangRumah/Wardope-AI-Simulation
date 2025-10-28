@@ -43,7 +43,17 @@ export const POST: RequestHandler = async ({ request }) => {
 		const processingTime = Date.now() - startTime;
 
 		const costUsd = estimateImageCost(quality);
-		const costIdr = costUsd * USD_TO_IDR;
+		const costIdr = Math.ceil(costUsd * USD_TO_IDR); // Round up to integer (prevents decimal locale issues)
+
+		// DEBUG: Log cost calculation details
+		console.log('🔍 IMPROVEMENT COST DEBUG:', {
+			quality,
+			costUsd,
+			USD_TO_IDR,
+			costIdr,
+			costIdrType: typeof costIdr,
+			processingTime
+		});
 
 		// 5. Return response
 		const response: ImprovementResponse = {

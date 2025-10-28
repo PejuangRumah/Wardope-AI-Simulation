@@ -4,15 +4,6 @@ import type { ItemAnalysis } from '$lib/types/item';
 import { getDefaultImprovementPrompt } from '$lib/constants/item-master';
 
 /**
- * Map our quality settings to OpenAI API parameters
- * low = standard quality, medium = standard, high = hd
- */
-function mapQualityToOpenAI(quality: 'low' | 'medium' | 'high'): 'standard' | 'hd' {
-	if (quality === 'high') return 'hd';
-	return 'standard';
-}
-
-/**
  * Generate an improved product photo using gpt-image-1
  * Creates professional e-commerce style images from item data
  *
@@ -32,17 +23,16 @@ export async function improveItemImage(
 	// Generate prompt
 	const prompt = customPrompt || getDefaultImprovementPrompt(itemData);
 
-	// Map quality to OpenAI parameter
-	const openaiQuality = mapQualityToOpenAI(quality);
-
-	// Call Image Generation API
+	// Call Image Generation API with gpt-image-1
 	const response = await openai.images.generate({
-		model: 'dall-e-3',
+		model: 'gpt-image-1',
 		prompt: prompt,
 		n: 1, // Generate 1 image
 		size: '1024x1024', // Square format (1:1 ratio)
-		quality: openaiQuality,
-		response_format: 'url'
+		quality: quality, // Pass quality directly (low, medium, high)
+		background: 'transparent', // Transparent PNG background
+		output_format: 'png' // PNG format for transparency support
+		// Note: response_format not supported by gpt-image-1 (returns URL by default)
 	});
 
 	// Extract image URL
@@ -109,11 +99,10 @@ ${additionalInstructions || ''}`;
  * @returns Cost in USD
  */
 export function estimateImageCost(quality: 'low' | 'medium' | 'high'): number {
-	// DALL-E 3 pricing (1024x1024)
-	// low = standard quality at lower cost
-	// medium = standard quality
-	// high = hd quality
-	if (quality === 'low') return 0.027; // Approximate lower cost
-	if (quality === 'high') return 0.08; // HD quality
-	return 0.04; // Standard quality (medium)
+	// gpt-image-1 pricing (1024x1024, 2025)
+	// Based on token consumption at different quality levels
+	// Low: ~85 tokens, Medium: ~250 tokens, High: ~765 tokens
+	if (quality === 'low') return 0.01; // Low quality
+	if (quality === 'high') return 0.17; // High quality
+	return 0.04; // Medium quality (default)
 }
