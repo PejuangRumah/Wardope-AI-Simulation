@@ -2,8 +2,7 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { analyzeItemImage, extractBase64FromDataUrl, isValidBase64Image } from '$lib/services/item-analyzer';
-import { PRICING, USD_TO_IDR, GuardrailTripwireTriggered } from '$lib/services/openai';
-import { GUARDRAIL_ERROR_MESSAGES } from '$lib/config/guardrails';
+import { PRICING, USD_TO_IDR } from '$lib/services/openai';
 import type { AnalysisResponse } from '$lib/types/item';
 
 export const POST: RequestHandler = async ({ request }) => {
@@ -64,33 +63,7 @@ export const POST: RequestHandler = async ({ request }) => {
 
 		return json(response, { status: 200 });
 	} catch (error) {
-		// Handle guardrail violations
-		if (error instanceof GuardrailTripwireTriggered) {
-			console.warn('Guardrail triggered:', {
-				timestamp: new Date().toISOString(),
-				guardrail: error.name,
-				message: error.message
-			});
-
-			// Determine user-friendly error message
-			let errorMessage = GUARDRAIL_ERROR_MESSAGES.GENERIC;
-
-			if (error.name?.toLowerCase().includes('topic')) {
-				errorMessage = GUARDRAIL_ERROR_MESSAGES.TOPICAL_ALIGNMENT;
-			} else if (error.name?.toLowerCase().includes('jailbreak')) {
-				errorMessage = GUARDRAIL_ERROR_MESSAGES.JAILBREAK;
-			}
-
-			return json(
-				{
-					error: errorMessage,
-					type: 'guardrail_violation'
-				},
-				{ status: 400 }
-			);
-		}
-
-		// Handle other errors
+		// Handle errors
 		console.error('Error analyzing item:', error);
 
 		const errorMessage =

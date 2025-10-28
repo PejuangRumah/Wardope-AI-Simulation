@@ -46,7 +46,7 @@ export function getAllCategories(): string[] {
 /**
  * Get subcategories for a specific category
  */
-export function getSubcategories(category: string): string[] {
+export function getSubcategories(category: string): readonly string[] {
 	return ITEM_CATEGORIES[category as keyof typeof ITEM_CATEGORIES] || [];
 }
 

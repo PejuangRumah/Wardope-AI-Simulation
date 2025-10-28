@@ -2,8 +2,7 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { improveItemImage, estimateImageCost } from '$lib/services/item-improver';
-import { PRICING, USD_TO_IDR, GuardrailTripwireTriggered } from '$lib/services/openai';
-import { GUARDRAIL_ERROR_MESSAGES } from '$lib/config/guardrails';
+import { USD_TO_IDR } from '$lib/services/openai';
 import type { ImprovementRequest, ImprovementResponse } from '$lib/types/item';
 
 export const POST: RequestHandler = async ({ request }) => {
@@ -28,10 +27,10 @@ export const POST: RequestHandler = async ({ request }) => {
 			);
 		}
 
-		if (!quality || !['standard', 'hd'].includes(quality)) {
+		if (!quality || !['low', 'medium', 'high'].includes(quality)) {
 			return json(
 				{
-					error: 'Quality must be either "standard" or "hd".'
+					error: 'Quality must be "low", "medium", or "high".'
 				},
 				{ status: 400 }
 			);
@@ -58,33 +57,7 @@ export const POST: RequestHandler = async ({ request }) => {
 
 		return json(response, { status: 200 });
 	} catch (error) {
-		// Handle guardrail violations
-		if (error instanceof GuardrailTripwireTriggered) {
-			console.warn('Guardrail triggered:', {
-				timestamp: new Date().toISOString(),
-				guardrail: error.name,
-				message: error.message
-			});
-
-			// Determine user-friendly error message
-			let errorMessage = GUARDRAIL_ERROR_MESSAGES.GENERIC;
-
-			if (error.name?.toLowerCase().includes('topic')) {
-				errorMessage = GUARDRAIL_ERROR_MESSAGES.TOPICAL_ALIGNMENT;
-			} else if (error.name?.toLowerCase().includes('jailbreak')) {
-				errorMessage = GUARDRAIL_ERROR_MESSAGES.JAILBREAK;
-			}
-
-			return json(
-				{
-					error: errorMessage,
-					type: 'guardrail_violation'
-				},
-				{ status: 400 }
-			);
-		}
-
-		// Handle other errors
+		// Handle errors
 		console.error('Error improving item image:', error);
 
 		const errorMessage =

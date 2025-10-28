@@ -34,7 +34,7 @@ export interface AnalysisResponse {
  */
 export interface ImprovementRequest {
 	itemData: ItemAnalysis;
-	quality: 'standard' | 'hd';
+	quality: 'low' | 'medium' | 'high';
 	customPrompt?: string;
 }
 
@@ -78,7 +78,7 @@ export interface StoredItem {
  * Experimental settings for item processing
  */
 export interface ExperimentalSettings {
-	quality: 'standard' | 'hd';
+	quality: 'low' | 'medium' | 'high';
 	customAnalysisPrompt?: string;
 	customImprovementPrompt?: string;
 	additionalCategories?: string[];
