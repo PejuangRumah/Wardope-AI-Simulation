@@ -1,5 +1,5 @@
 // Embeddings Service - Create and cache embeddings for wardrobe items
-import { openai } from './openai';
+import { getOpenAIClient } from './openai';
 import type { WardrobeItem, WardrobeItemWithEmbedding } from '$lib/types';
 
 // Simple in-memory cache with TTL
@@ -34,6 +34,7 @@ async function createItemEmbedding(item: WardrobeItem): Promise<{
   tokens: number;
 }> {
   const text = createEmbeddingText(item);
+  const openai = await getOpenAIClient();
 
   const response = await openai.embeddings.create({
     model: 'text-embedding-3-small',
@@ -121,6 +122,7 @@ export async function createQueryEmbedding(
   tokens: number;
 }> {
   const queryText = `${occasion} outfit ${note || ''}`.trim();
+  const openai = await getOpenAIClient();
 
   const response = await openai.embeddings.create({
     model: 'text-embedding-3-small',

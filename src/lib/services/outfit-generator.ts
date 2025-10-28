@@ -1,5 +1,5 @@
 // Outfit Generator Service - Generate outfit combinations using GPT-4o
-import { openai } from './openai';
+import { getOpenAIClient } from './openai';
 import type { WardrobeItemWithEmbedding, OutfitCombination } from '$lib/types';
 
 /**
@@ -90,6 +90,9 @@ export async function generateOutfits(
   const systemPrompt = customPrompt
     ? buildSystemPrompt(customPrompt, occasion, note)
     : buildSystemPrompt(getDefaultPromptTemplate(), occasion, note);
+
+  // Get OpenAI client with guardrails
+  const openai = await getOpenAIClient();
 
   // Call GPT-4o with structured output
   const response = await openai.chat.completions.create({

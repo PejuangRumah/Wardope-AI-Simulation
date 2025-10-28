@@ -8,6 +8,8 @@ import { generateOutfits } from '$lib/services/outfit-generator';
 import { calculateCosts } from '$lib/utils/cost-calculator';
 import { OCCASIONS, GENDERS } from '$lib/constants/wardrobe-master';
 import type { RecommendationResponse } from '$lib/types';
+import { GuardrailTripwireTriggered } from '$lib/services/openai';
+import { GUARDRAIL_ERROR_MESSAGES } from '$lib/config/guardrails';
 
 export const POST: RequestHandler = async ({ request }) => {
   const startTime = Date.now();
@@ -101,6 +103,32 @@ export const POST: RequestHandler = async ({ request }) => {
 
     return json(response);
   } catch (error) {
+    // Handle guardrail violations (prompt injection, off-topic, etc.)
+    if (error instanceof GuardrailTripwireTriggered) {
+      console.warn('Guardrail triggered:', {
+        timestamp: new Date().toISOString(),
+        guardrail: error.name,
+        input: error.message
+      });
+
+      // Determine error message based on guardrail type
+      let errorMessage = GUARDRAIL_ERROR_MESSAGES.GENERIC;
+      if (error.name?.toLowerCase().includes('topical')) {
+        errorMessage = GUARDRAIL_ERROR_MESSAGES.TOPICAL_ALIGNMENT;
+      } else if (error.name?.toLowerCase().includes('jailbreak')) {
+        errorMessage = GUARDRAIL_ERROR_MESSAGES.JAILBREAK;
+      }
+
+      return json(
+        {
+          error: errorMessage,
+          type: 'guardrail_violation'
+        },
+        { status: 400 }
+      );
+    }
+
+    // Handle other errors
     console.error('Error generating recommendations:', error);
 
     return json(

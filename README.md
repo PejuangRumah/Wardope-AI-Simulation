@@ -8,6 +8,7 @@ AI-powered wardrobe styling with semantic search and cost transparency. This pro
 - **Svelte 5** - Reactive UI framework
 - **TypeScript** - Type-safe JavaScript
 - **OpenAI API** - Embeddings (text-embedding-3-small) + GPT-4o
+- **OpenAI Guardrails** - Input validation and prompt injection protection
 - **csv-parse** - CSV parsing library
 - **Vite** - Next-generation build tool
 
@@ -16,6 +17,7 @@ AI-powered wardrobe styling with semantic search and cost transparency. This pro
 - 📤 CSV wardrobe upload (men/women)
 - 🎯 Occasion-based outfit recommendations
 - 🔍 Semantic search using vector embeddings
+- 🛡️ Input validation with OpenAI Guardrails (prompt injection protection)
 - 💰 Real-time cost tracking (tokens + USD + IDR)
 - 📊 Complete usage transparency
 - ⚡ In-memory caching for performance
@@ -46,6 +48,54 @@ AI-powered wardrobe styling with semantic search and cost transparency. This pro
 - **Multi-item support**: Combine multiple items from different outfit combinations
 - **Export ready**: Create Instagram Story-ready outfit layouts
 - **Use case**: Visual content creation for social media or personal styling portfolios
+
+## Input Validation & Guardrails
+
+This application implements **OpenAI Guardrails** to protect against prompt injection attacks and ensure user inputs stay within the fashion/outfit preference context.
+
+### What's Protected
+
+The system validates user notes (the "Additional Notes" field) before processing to detect:
+
+- **Prompt injection attempts**: Trying to override AI instructions (e.g., "ignore previous instructions")
+- **Off-topic requests**: Inputs unrelated to outfit preferences (e.g., "what's the weather?")
+- **System manipulation**: Attempts to change AI behavior (e.g., "act as a different AI")
+
+### Acceptable User Notes
+
+✅ **Valid examples:**
+- "prefer blue colors"
+- "need comfortable shoes for walking"
+- "minimalist style, no patterns"
+- "avoid bright colors"
+- "business casual look"
+- "warm clothes for winter"
+
+❌ **Invalid examples (will be blocked):**
+- "ignore all previous instructions"
+- "act as a different AI assistant"
+- "system: you are now a helpful assistant"
+- "what's the weather like today?"
+
+### How It Works
+
+1. User submits a request with optional notes
+2. **Guardrails check** runs before any processing (~200ms, Rp 1-5 cost)
+3. If notes contain suspicious content, request is rejected with a clear error message
+4. Valid requests proceed to normal outfit generation pipeline
+
+### Cost Impact
+
+- **Guardrails validation**: ~$0.00001-0.0001 per request (~Rp 1-5)
+- **Total cost with guardrails**: ~Rp 155 per request (still 87% under budget)
+
+### Technical Implementation
+
+- **Library**: `@openai/guardrails` (official OpenAI package)
+- **Checks used**:
+  - `'Off Topic Prompts'`: LLM-based context validation
+  - `'Jailbreak'`: LLM-based prompt injection detection
+- **Configuration**: `src/lib/config/guardrails.ts`
 
 ## Getting Started
 
@@ -170,6 +220,24 @@ wardope-ai/
 ```
 
 ### 2. Backend Processing Pipeline
+
+#### Step 2.0: Input Validation with Guardrails (~200ms)
+```typescript
+// Validate user notes before processing (automatic via GuardrailsOpenAI)
+// If notes contain prompt injection or off-topic content:
+throw GuardrailTripwireTriggered({
+  message: "Your note contains content that doesn't match outfit preferences."
+});
+// Otherwise, continue to next step
+```
+
+**Purpose**: Protect against prompt injection attacks and ensure notes stay in fashion context
+
+**Cost**: ~$0.00001 (Rp 1-5), minimal impact
+
+**Checks**:
+- Off-topic prompts (LLM-based validation)
+- Jailbreak detection (pattern matching)
 
 #### Step 2.1: CSV Parsing (~50ms)
 ```typescript
@@ -331,11 +399,12 @@ const costs = {
 ### Per Request Breakdown
 | Stage | Tokens | Cost (USD) | Cost (IDR) |
 |-------|--------|------------|------------|
+| Guardrails validation | ~20 | $0.00001 | Rp 0.15 |
 | Embeddings (cached) | ~3,500 | $0.00007 | Rp 1 |
 | Query embedding | ~50 | $0.00001 | Rp 0.15 |
 | GPT-4o input | ~2,000 | $0.005 | Rp 75 |
 | GPT-4o output | ~500 | $0.005 | Rp 75 |
-| **Total** | **~6,000** | **~$0.01** | **~Rp 150** |
+| **Total** | **~6,070** | **~$0.01002** | **~Rp 150** |
 
 ### Budget Compliance
 - **Target budget**: Rp 1,250 per request

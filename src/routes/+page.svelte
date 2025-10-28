@@ -758,6 +758,16 @@
 						placeholder="e.g., prefer blue colors, need comfortable shoes"
 						class="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
 					></textarea>
+					<div class="mt-2 text-xs text-gray-600">
+						<p class="mb-1">
+							<span class="font-medium text-gray-700">Acceptable:</span> Color preferences, style
+							notes, fit requirements, comfort needs, brand preferences
+						</p>
+						<p>
+							<span class="font-medium text-gray-700">Not allowed:</span> System instructions,
+							prompt modifications, or unrelated content
+						</p>
+					</div>
 				</div>
 
 				<!-- System Prompt Editor -->
@@ -892,7 +902,7 @@
 											Understanding the AI Recommendation Pipeline
 										</p>
 										<p class="text-xs text-gray-600">
-											This system uses OpenAI's embeddings and GPT-4o to create intelligent outfit recommendations. The process takes 5-8 seconds and costs approximately Rp 150-200 per request.
+											This system uses OpenAI Guardrails for input validation, OpenAI's embeddings for semantic search, and GPT-4o to create intelligent outfit recommendations. The process takes 5-8 seconds and costs approximately Rp 150-200 per request.
 										</p>
 									</div>
 								</div>
@@ -900,6 +910,45 @@
 
 							<!-- Process Steps -->
 							<div class="space-y-3">
+								<!-- Step 0: Input Validation (Guardrails) -->
+								<div class="border border-blue-200 rounded-lg p-3 bg-blue-50">
+									<div class="flex items-start gap-3">
+										<div class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-bold">
+											0
+										</div>
+										<div class="flex-1">
+											<div class="flex items-center gap-2 mb-1">
+												<svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+													<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+												</svg>
+												<h4 class="text-sm font-semibold text-gray-900">Input Validation (Guardrails)</h4>
+												<span class="px-2 py-0.5 bg-blue-600 text-white text-xs font-semibold rounded">Security</span>
+											</div>
+											<p class="text-xs text-gray-600 mb-2">
+												Validate user notes to prevent prompt injection attacks and ensure inputs stay within outfit preference context. Uses OpenAI Guardrails with off-topic detection and jailbreak prevention.
+											</p>
+											<div class="p-2 bg-white border border-blue-200 rounded text-xs mb-2">
+												<div class="font-medium text-gray-700 mb-1">Protection Against:</div>
+												<ul class="space-y-0.5 text-gray-600">
+													<li>• Prompt injection attempts ("ignore instructions")</li>
+													<li>• System manipulation ("act as different AI")</li>
+													<li>• Off-topic requests (non-fashion queries)</li>
+												</ul>
+											</div>
+											<div class="flex items-center gap-4 text-xs text-gray-500">
+												<span class="flex items-center gap-1">
+													<Clock class="w-3.5 h-3.5" />
+													~200ms
+												</span>
+												<span class="flex items-center gap-1 text-gray-700">
+													<DollarSign class="w-3.5 h-3.5" />
+													$0.00001 USD (Rp 0.15)
+												</span>
+											</div>
+										</div>
+									</div>
+								</div>
+
 								<!-- Step 1: CSV Parsing -->
 								<div class="border border-gray-200 rounded-lg p-3 bg-white">
 									<div class="flex items-start gap-3">
@@ -1130,8 +1179,11 @@
 									<Info class="w-4 h-4 text-gray-600 flex-shrink-0 mt-0.5" />
 									<div class="text-xs text-gray-700">
 										<p class="font-semibold mb-1">Why This Approach?</p>
+										<p class="text-gray-600 mb-2">
+											<strong>Guardrails</strong> protect against malicious inputs before processing begins, ensuring system integrity. <strong>Semantic search</strong> ensures AI only considers the most relevant items (reducing cost by 80%+), while <strong>GPT-4o's fashion expertise</strong> creates stylistically coherent combinations with detailed reasoning. Embeddings are cached to avoid repeated API calls for the same wardrobe.
+										</p>
 										<p class="text-gray-600">
-											Semantic search ensures AI only considers the most relevant items (reducing cost by 80%+), while GPT-4o's fashion expertise creates stylistically coherent combinations with detailed reasoning. Embeddings are cached to avoid repeated API calls for the same wardrobe.
+											This multi-layered approach balances security, cost-efficiency, and quality to deliver safe, intelligent outfit recommendations.
 										</p>
 									</div>
 								</div>
@@ -1154,7 +1206,25 @@
 		<!-- Error -->
 		{#if error}
 			<div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
-				<p class="text-red-800"><strong>Error:</strong> {error}</p>
+				<div class="flex items-start gap-3">
+					<svg
+						class="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5"
+						fill="none"
+						stroke="currentColor"
+						viewBox="0 0 24 24"
+					>
+						<path
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							stroke-width="2"
+							d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+						/>
+					</svg>
+					<div class="flex-1">
+						<p class="text-red-800 font-medium mb-1">Error</p>
+						<p class="text-red-700 text-sm">{error}</p>
+					</div>
+				</div>
 			</div>
 		{/if}
 
