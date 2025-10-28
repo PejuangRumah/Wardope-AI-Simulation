@@ -1486,7 +1486,7 @@
 																style="background-color: {color.hex};"
 															></div>
 															<span
-																class="absolute -bottom-6 left-1/2 -translate-x-1/2 text-xs text-gray-600 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap"
+																class="absolute -bottom-8 left-1/2 -translate-x-1/2 text-xs text-white bg-gray-900 bg-opacity-90 px-3 py-1.5 rounded-md shadow-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50"
 															>
 																{color.name}
 															</span>
