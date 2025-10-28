@@ -31,11 +31,14 @@ export async function getOpenAIClient(): Promise<GuardrailsOpenAI> {
 // Export error type for handling guardrail violations
 export { GuardrailTripwireTriggered };
 
-// Pricing constants (per 1M tokens)
+// Pricing constants (per 1M tokens for text, per image for vision/generation)
 export const PRICING = {
-  EMBEDDING: 0.02, // text-embedding-3-small
-  GPT_INPUT: 2.5, // gpt-4o input
-  GPT_OUTPUT: 10 // gpt-4o output
+  EMBEDDING: 0.02, // text-embedding-3-small (per 1M tokens)
+  GPT_INPUT: 2.5, // gpt-4o input (per 1M tokens)
+  GPT_OUTPUT: 10, // gpt-4o output (per 1M tokens)
+  VISION_IMAGE: 0.00765, // gpt-4o vision per image (~765 tokens for 1024x1024)
+  IMAGE_GEN_STANDARD: 0.04, // gpt-image-1 standard quality (per image, 1024x1024)
+  IMAGE_GEN_HD: 0.08 // gpt-image-1 HD quality (per image, 1024x1024)
 } as const;
 
 // Exchange rate (approximate)
