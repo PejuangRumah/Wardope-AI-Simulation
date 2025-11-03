@@ -343,7 +343,7 @@ const costs = {
   gpt_input_cost: (promptTokens / 1_000_000) * 2.5,
   gpt_output_cost: (completionTokens / 1_000_000) * 10,
   total_cost_usd: sum(all),
-  total_cost_idr: total_cost_usd * 15000
+  total_cost_idr: total_cost_usd * 16500
 };
 ```
 

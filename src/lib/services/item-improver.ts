@@ -1,4 +1,5 @@
 // Item Improver Service - Generate improved fashion item images using GPT-Image-1
+import { toFile } from 'openai';
 import { getOpenAIClientWithoutGuardrails } from './openai';
 import type { ItemAnalysis } from '$lib/types/item';
 import { getDefaultImprovementPrompt } from '$lib/constants/item-master';
@@ -8,12 +9,14 @@ import { getDefaultImprovementPrompt } from '$lib/constants/item-master';
  * Creates professional e-commerce style images from item data
  *
  * @param itemData - Analysis data from Vision API
- * @param quality - Image quality: 'low', 'medium', or 'high'
+ * @param originalImage - Base64 data URI of the uploaded image
+ * @param quality - Quality level (for cost estimation only; not used by API)
  * @param customPrompt - Optional custom prompt to override default
- * @returns Promise resolving to generated image URL
+ * @returns Promise resolving to data URI (data:image/png;base64,...)
  */
 export async function improveItemImage(
 	itemData: ItemAnalysis,
+	originalImage: string,
 	quality: 'low' | 'medium' | 'high' = 'medium',
 	customPrompt?: string
 ): Promise<string> {
@@ -23,30 +26,39 @@ export async function improveItemImage(
 	// Generate prompt
 	const prompt = customPrompt || getDefaultImprovementPrompt(itemData);
 
-	// Call Image Generation API with gpt-image-1
-	const response = await openai.images.generate({
+	// Convert base64 data URI to Buffer
+	const uploadedImageBase64 = originalImage.replace(/^data:image\/\w+;base64,/, '');
+	const buffer = Buffer.from(uploadedImageBase64, 'base64');
+
+	// Convert Buffer to File object for API
+	const imageFile = await toFile(buffer, 'input.png', { type: 'image/png' });
+
+	// Call Image Edit API with gpt-image-1
+	const response = await openai.images.edit({
 		model: 'gpt-image-1',
+		image: imageFile,
 		prompt: prompt,
-		n: 1, // Generate 1 image
-		size: '1024x1024', // Square format (1:1 ratio)
-		quality: quality, // Pass quality directly (low, medium, high)
-		background: 'transparent', // Transparent PNG background
-		output_format: 'png' // PNG format for transparency support
-		// Note: response_format not supported by gpt-image-1 (returns URL by default)
+		n: 1,
+		size: '1024x1024',
+		input_fidelity: 'high' // Preserve original colors, patterns, design
+		// Note: gpt-image-1 returns base64-encoded JSON (b64_json), not URLs
 	});
 
-	// Extract image URL
+	// Extract base64 image data
 	if (!response.data || response.data.length === 0) {
 		throw new Error('No image data returned from OpenAI');
 	}
 
-	const imageUrl = response.data[0]?.url;
+	const base64Data = response.data[0]?.b64_json;
 
-	if (!imageUrl) {
-		throw new Error('No image URL returned from OpenAI');
+	if (!base64Data) {
+		throw new Error('No base64 image data returned from OpenAI');
 	}
 
-	return imageUrl;
+	// Convert base64 to data URI for use in <img> src
+	const dataUri = `data:image/png;base64,${base64Data}`;
+
+	return dataUri;
 }
 
 /**
