@@ -1,4 +1,5 @@
 // Item Improver Service - Generate improved fashion item images using GPT-Image-1
+import { toFile } from 'openai';
 import { getOpenAIClientWithoutGuardrails } from './openai';
 import type { ItemAnalysis } from '$lib/types/item';
 import { getDefaultImprovementPrompt } from '$lib/constants/item-master';
@@ -8,12 +9,14 @@ import { getDefaultImprovementPrompt } from '$lib/constants/item-master';
  * Creates professional e-commerce style images from item data
  *
  * @param itemData - Analysis data from Vision API
+ * @param originalImage - Base64 data URI of the uploaded image
  * @param quality - Quality level (for cost estimation only; not used by API)
  * @param customPrompt - Optional custom prompt to override default
  * @returns Promise resolving to data URI (data:image/png;base64,...)
  */
 export async function improveItemImage(
 	itemData: ItemAnalysis,
+	originalImage: string,
 	quality: 'low' | 'medium' | 'high' = 'medium',
 	customPrompt?: string
 ): Promise<string> {
@@ -23,14 +26,22 @@ export async function improveItemImage(
 	// Generate prompt
 	const prompt = customPrompt || getDefaultImprovementPrompt(itemData);
 
-	// Call Image Generation API with gpt-image-1
-	const response = await openai.images.generate({
+	// Convert base64 data URI to Buffer
+	const uploadedImageBase64 = originalImage.replace(/^data:image\/\w+;base64,/, '');
+	const buffer = Buffer.from(uploadedImageBase64, 'base64');
+
+	// Convert Buffer to File object for API
+	const imageFile = await toFile(buffer, 'input.png', { type: 'image/png' });
+
+	// Call Image Edit API with gpt-image-1
+	const response = await openai.images.edit({
 		model: 'gpt-image-1',
+		image: imageFile,
 		prompt: prompt,
-		n: 1, // Generate 1 image
-		size: '1024x1024' // Square format (1:1 ratio)
+		n: 1,
+		size: '1024x1024',
+		input_fidelity: 'high' // Preserve original colors, patterns, design
 		// Note: gpt-image-1 returns base64-encoded JSON (b64_json), not URLs
-		// Parameters like quality, background, output_format are not supported
 	});
 
 	// Extract base64 image data

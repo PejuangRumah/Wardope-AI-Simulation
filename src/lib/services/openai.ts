@@ -61,4 +61,4 @@ export const PRICING = {
 } as const;
 
 // Exchange rate (approximate)
-export const USD_TO_IDR = 15000;
+export const USD_TO_IDR = 16600;

@@ -11,11 +11,15 @@ export const POST: RequestHandler = async ({ request }) => {
 	try {
 		// 1. Parse request body
 		const body: ImprovementRequest = await request.json();
-		const { itemData, quality, customPrompt } = body;
+		const { itemData, originalImage, quality, customPrompt } = body;
 
 		// 2. Validate inputs
 		if (!itemData) {
 			return json({ error: 'Item data is required.' }, { status: 400 });
+		}
+
+		if (!originalImage) {
+			return json({ error: 'Original image is required.' }, { status: 400 });
 		}
 
 		if (!itemData.category || !itemData.subcategory) {
@@ -37,7 +41,7 @@ export const POST: RequestHandler = async ({ request }) => {
 		}
 
 		// 3. Generate improved image
-		const imageUrl = await improveItemImage(itemData, quality, customPrompt);
+		const imageUrl = await improveItemImage(itemData, originalImage, quality, customPrompt);
 
 		// 4. Calculate costs
 		const processingTime = Date.now() - startTime;

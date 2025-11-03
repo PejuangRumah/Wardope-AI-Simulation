@@ -34,6 +34,7 @@ export interface AnalysisResponse {
  */
 export interface ImprovementRequest {
 	itemData: ItemAnalysis;
+	originalImage: string; // base64 data URI of uploaded image
 	quality: 'low' | 'medium' | 'high';
 	customPrompt?: string;
 }

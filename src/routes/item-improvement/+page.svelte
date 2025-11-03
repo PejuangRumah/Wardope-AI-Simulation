@@ -62,6 +62,8 @@
 	// Computed values
 	$: totalCostIdr =
 		(analysisUsage?.cost_idr || 0) + (improvementUsage?.cost_idr || 0);
+	$: totalCostUsd =
+		(analysisUsage?.cost_usd || 0) + (improvementUsage?.cost_usd || 0);
 
 	// Handle file upload
 	function handleFileSelect(event: Event) {
@@ -167,6 +169,20 @@
 			analysisResult = analysisData.analysis;
 			analysisUsage = analysisData.usage;
 
+			// Update improvement prompt with actual analyzed data
+			if (analysisResult) {
+				defaultImprovementPrompt = getDefaultImprovementPrompt({
+					category: analysisResult.category,
+					subcategory: analysisResult.subcategory,
+					colors: analysisResult.colors,
+					fit: analysisResult.fit
+				});
+				// Only update custom prompt if user hasn't modified it (still matches old default)
+				if (customImprovementPrompt === defaultImprovementPrompt || customImprovementPrompt.includes('tops - Shirt')) {
+					customImprovementPrompt = defaultImprovementPrompt;
+				}
+			}
+
 			// Step 2: Conditionally improve
 			if (enableImprovement && analysisResult) {
 				currentStep = 'Generating improved image...';
@@ -179,6 +195,7 @@
 						},
 						body: JSON.stringify({
 							itemData: analysisResult,
+							originalImage: uploadedImage,
 							quality: improvementQuality,
 							customPrompt: customImprovementPrompt || undefined
 						})
@@ -210,6 +227,16 @@
 			if (processingInterval) {
 				clearInterval(processingInterval);
 				processingInterval = null;
+			}
+
+			// Auto-scroll to results after processing completes
+			if (analysisResult) {
+				setTimeout(() => {
+					const resultsElement = document.getElementById('analysis-results');
+					if (resultsElement) {
+						resultsElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+					}
+				}, 100);
 			}
 		}
 	}
@@ -764,7 +791,7 @@
 			<!-- Results Section -->
 			{#if analysisResult && analysisUsage}
 				<!-- Analysis Results Card -->
-				<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+				<div id="analysis-results" class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
 					<div class="flex items-center gap-2 mb-4">
 						<h2 class="text-xl font-semibold text-gray-900">Analysis Results</h2>
 						<span
@@ -859,7 +886,7 @@
 						</span>
 						<span class="flex items-center gap-1">
 							<DollarSign class="w-4 h-4" />
-							Rp {analysisUsage.cost_idr.toLocaleString('id-ID')}
+							${analysisUsage.cost_usd.toFixed(4)} USD (Rp {analysisUsage.cost_idr.toLocaleString('id-ID')})
 						</span>
 					</div>
 				</div>
@@ -887,7 +914,7 @@
 							</span>
 							<span class="flex items-center gap-1">
 								<DollarSign class="w-4 h-4" />
-								Rp {improvementUsage.cost_idr.toLocaleString('id-ID')}
+								${improvementUsage.cost_usd.toFixed(4)} USD (Rp {improvementUsage.cost_idr.toLocaleString('id-ID')})
 							</span>
 							<span class="flex items-center gap-1">
 								<span class="text-gray-700">Quality:</span>
@@ -929,17 +956,17 @@
 					<div class="space-y-2 text-sm mb-6">
 						<div class="flex justify-between">
 							<span class="text-gray-600">Analysis cost:</span>
-							<span class="font-mono">Rp {analysisUsage.cost_idr.toLocaleString('id-ID')}</span>
+							<span class="font-mono">${analysisUsage.cost_usd.toFixed(4)} USD (Rp {analysisUsage.cost_idr.toLocaleString('id-ID')})</span>
 						</div>
 						{#if improvementUsage}
 							<div class="flex justify-between">
 								<span class="text-gray-600">Improvement ({improvementQuality}):</span>
-								<span class="font-mono">Rp {improvementUsage.cost_idr.toLocaleString('id-ID')}</span>
+								<span class="font-mono">${improvementUsage.cost_usd.toFixed(4)} USD (Rp {improvementUsage.cost_idr.toLocaleString('id-ID')})</span>
 							</div>
 						{/if}
 						<div class="flex justify-between pt-2 border-t font-semibold">
-							<span>Total cost (IDR):</span>
-							<span class="font-mono">Rp {totalCostIdr.toLocaleString('id-ID')}</span>
+							<span>Total cost:</span>
+							<span class="font-mono">${totalCostUsd.toFixed(4)} USD (Rp {totalCostIdr.toLocaleString('id-ID')})</span>
 						</div>
 					</div>
 

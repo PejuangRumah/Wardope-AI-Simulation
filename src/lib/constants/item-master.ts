@@ -193,21 +193,18 @@ export function getDefaultImprovementPrompt(itemData: {
 	colors: string[];
 	fit: string;
 }): string {
-	return `Professional e-commerce product photo of a ${itemData.subcategory}.
-
-Style: ${itemData.category} - ${itemData.subcategory}
-Primary Colors: ${itemData.colors.join(', ')}
-Fit: ${itemData.fit}
+	return `Professional e-commerce product photo
 
 Requirements:
 - Clean, white or light neutral background (studio-style)
 - Front-facing view, centered composition
 - Professional lighting with no harsh shadows
-- Remove any other objects, people, or distractions
+- Remove any other objects, people, hangers, or distractions from the background
 - High-quality product photography style
 - Suitable for premium online fashion retail
 - Item should look pristine, well-pressed, and professionally presented
 - Sharp focus, high resolution appearance
+- IMPORTANT: Maintain the original design, colors, patterns, and shape of the clothing item
 
 The result should look like a professional catalog photo from a premium fashion brand website or high-end e-commerce store.`;
 }
