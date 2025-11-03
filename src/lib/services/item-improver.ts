@@ -8,9 +8,9 @@ import { getDefaultImprovementPrompt } from '$lib/constants/item-master';
  * Creates professional e-commerce style images from item data
  *
  * @param itemData - Analysis data from Vision API
- * @param quality - Image quality: 'low', 'medium', or 'high'
+ * @param quality - Quality level (for cost estimation only; not used by API)
  * @param customPrompt - Optional custom prompt to override default
- * @returns Promise resolving to generated image URL
+ * @returns Promise resolving to data URI (data:image/png;base64,...)
  */
 export async function improveItemImage(
 	itemData: ItemAnalysis,
@@ -28,25 +28,26 @@ export async function improveItemImage(
 		model: 'gpt-image-1',
 		prompt: prompt,
 		n: 1, // Generate 1 image
-		size: '1024x1024', // Square format (1:1 ratio)
-		quality: quality, // Pass quality directly (low, medium, high)
-		background: 'transparent', // Transparent PNG background
-		output_format: 'png' // PNG format for transparency support
-		// Note: response_format not supported by gpt-image-1 (returns URL by default)
+		size: '1024x1024' // Square format (1:1 ratio)
+		// Note: gpt-image-1 returns base64-encoded JSON (b64_json), not URLs
+		// Parameters like quality, background, output_format are not supported
 	});
 
-	// Extract image URL
+	// Extract base64 image data
 	if (!response.data || response.data.length === 0) {
 		throw new Error('No image data returned from OpenAI');
 	}
 
-	const imageUrl = response.data[0]?.url;
+	const base64Data = response.data[0]?.b64_json;
 
-	if (!imageUrl) {
-		throw new Error('No image URL returned from OpenAI');
+	if (!base64Data) {
+		throw new Error('No base64 image data returned from OpenAI');
 	}
 
-	return imageUrl;
+	// Convert base64 to data URI for use in <img> src
+	const dataUri = `data:image/png;base64,${base64Data}`;
+
+	return dataUri;
 }
 
 /**
