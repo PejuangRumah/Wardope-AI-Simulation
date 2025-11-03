@@ -112,7 +112,7 @@ export const POST: RequestHandler = async ({ request }) => {
       });
 
       // Determine error message based on guardrail type
-      let errorMessage = GUARDRAIL_ERROR_MESSAGES.GENERIC;
+      let errorMessage: string = GUARDRAIL_ERROR_MESSAGES.GENERIC;
       if (error.name?.toLowerCase().includes('topical')) {
         errorMessage = GUARDRAIL_ERROR_MESSAGES.TOPICAL_ALIGNMENT;
       } else if (error.name?.toLowerCase().includes('jailbreak')) {
