@@ -41,9 +41,6 @@
 						<div class="w-14 h-14 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
 							<Sparkles class="w-7 h-7 text-white" />
 						</div>
-						<span class="px-3 py-1 bg-green-100 text-green-700 text-xs font-semibold rounded-full">
-							Active
-						</span>
 					</div>
 
 					<!-- Title -->
@@ -106,9 +103,6 @@
 						<div class="w-14 h-14 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
 							<Image class="w-7 h-7 text-white" />
 						</div>
-						<span class="px-3 py-1 bg-yellow-100 text-yellow-700 text-xs font-semibold rounded-full">
-							Coming Soon
-						</span>
 					</div>
 
 					<!-- Title -->
