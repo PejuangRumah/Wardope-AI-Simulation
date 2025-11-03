@@ -1,7 +1,7 @@
 // Guardrails Configuration for OpenAI API
 // Prevents prompt injection and ensures user notes stay within outfit preference context
 
-import type { GuardrailsConfig } from '@openai/guardrails';
+import type { PipelineConfig } from '@openai/guardrails';
 
 /**
  * Guardrails configuration for outfit recommendation system
@@ -15,7 +15,7 @@ import type { GuardrailsConfig } from '@openai/guardrails';
  *
  * Note: apiKey is passed separately when creating the client in openai.ts
  */
-export const guardrailsConfig: Omit<GuardrailsConfig, 'apiKey'> = {
+export const guardrailsConfig: PipelineConfig = {
 	version: 1,
 	input: {
 		version: 1,
