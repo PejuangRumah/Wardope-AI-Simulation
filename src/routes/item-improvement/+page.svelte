@@ -160,11 +160,18 @@
 				})
 			});
 
-			const analysisData = await analysisResponse.json();
-
 			if (!analysisResponse.ok) {
-				throw new Error(analysisData.error || 'Failed to analyze image');
+				let errorMessage = 'Failed to analyze image';
+				try {
+					const errorData = await analysisResponse.json();
+					errorMessage = errorData.error || errorMessage;
+				} catch (e) {
+					errorMessage = `Server error: ${analysisResponse.status}`;
+				}
+				throw new Error(errorMessage);
 			}
+
+			const analysisData = await analysisResponse.json();
 
 			analysisResult = analysisData.analysis;
 			analysisUsage = analysisData.usage;
@@ -201,11 +208,18 @@
 						})
 					});
 
-					const improvementData = await improvementResponse.json();
-
 					if (!improvementResponse.ok) {
-						throw new Error(improvementData.error || 'Failed to improve image');
+						let errorMessage = 'Failed to improve image';
+						try {
+							const errorData = await improvementResponse.json();
+							errorMessage = errorData.error || errorMessage;
+						} catch (e) {
+							errorMessage = `Server error: ${improvementResponse.status}`;
+						}
+						throw new Error(errorMessage);
 					}
+
+					const improvementData = await improvementResponse.json();
 
 					improvedImageUrl = improvementData.imageUrl;
 					improvementUsage = improvementData.usage;
