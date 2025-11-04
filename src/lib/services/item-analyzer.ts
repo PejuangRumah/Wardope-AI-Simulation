@@ -1,5 +1,5 @@
 // Item Analyzer Service - Analyze fashion items using GPT-4o Vision API
-import { getOpenAIClient } from './openai';
+import { getOpenAIClientWithoutGuardrails } from './openai';
 import type { ItemAnalysis } from '$lib/types/item';
 import {
 	getDefaultAnalysisPrompt,
@@ -26,8 +26,8 @@ export async function analyzeItemImage(
 	promptTokens: number;
 	completionTokens: number;
 }> {
-	// Get OpenAI client with guardrails wrapper (better error handling for Netlify)
-	const openai = await getOpenAIClient();
+	// Get OpenAI client without guardrails (no user input to validate)
+	const openai = getOpenAIClientWithoutGuardrails();
 
 	// Prepare system prompt
 	const systemPrompt = customPrompt || getDefaultAnalysisPrompt();
