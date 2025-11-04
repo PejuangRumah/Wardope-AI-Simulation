@@ -1,6 +1,6 @@
 // Item Improver Service - Generate improved fashion item images using GPT-Image-1
 import { toFile } from 'openai';
-import { getOpenAIClient } from './openai';
+import { getOpenAIClientWithoutGuardrails } from './openai';
 import type { ItemAnalysis } from '$lib/types/item';
 import { getDefaultImprovementPrompt } from '$lib/constants/item-master';
 
@@ -20,8 +20,8 @@ export async function improveItemImage(
 	quality: 'low' | 'medium' | 'high' = 'medium',
 	customPrompt?: string
 ): Promise<string> {
-	// Get OpenAI client with guardrails wrapper (better error handling for Netlify)
-	const openai = await getOpenAIClient();
+	// Get OpenAI client without guardrails (no user input to validate)
+	const openai = getOpenAIClientWithoutGuardrails();
 
 	// Generate prompt
 	const prompt = customPrompt || getDefaultImprovementPrompt(itemData);
