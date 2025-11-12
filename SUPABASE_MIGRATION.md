@@ -869,6 +869,257 @@ ORDER BY s.display_order;
 
 ---
 
+## Phase 7: Prompt Management & Outfit Image Storage (Advanced Features)
+
+### 7.1 Prompt Management Database Setup
+
+**Purpose**: Store user-specific prompt templates with versioning and usage tracking
+
+**Execute**: `prompt-management-schema.sql`
+
+- [ ] Open Supabase SQL Editor: https://supabase.com/dashboard/project/ogrfmapwyxodzhlwygrl/sql
+- [ ] Copy entire content dari `prompt-management-schema.sql`
+- [ ] Execute di SQL Editor
+- [ ] Verify tables created:
+  ```sql
+  SELECT table_name
+  FROM information_schema.tables
+  WHERE table_schema = 'public'
+    AND table_name IN ('prompts', 'prompt_versions', 'prompt_usage_logs')
+  ORDER BY table_name;
+  ```
+- [ ] Expected tables: `prompts`, `prompt_versions`, `prompt_usage_logs`
+- [ ] Verify enum type created:
+  ```sql
+  SELECT typname, enumlabel
+  FROM pg_type
+  JOIN pg_enum ON pg_type.oid = pg_enum.enumtypid
+  WHERE typname = 'prompt_type'
+  ORDER BY enumsortorder;
+  ```
+- [ ] Expected enums: `outfit_recommendation`, `item_analysis`, `item_improvement`
+
+**Features Available**:
+- ✅ User-specific prompts (each user can create custom prompts)
+- ✅ 3 prompt types: outfit recommendation, item analysis, item improvement
+- ✅ Automatic versioning (history saved on every update)
+- ✅ Usage tracking (linked to outfit_combinations)
+- ✅ Rollback functionality (restore previous versions)
+- ✅ RLS policies (users only manage their own prompts)
+
+**Helper Functions**:
+```sql
+-- Get user's active prompt by type
+SELECT * FROM get_user_active_prompt(auth.uid(), 'outfit_recommendation');
+
+-- Rollback prompt to version 2
+SELECT rollback_prompt_to_version('prompt-uuid', 2);
+
+-- View version history
+SELECT version, content, created_at, change_summary
+FROM prompt_versions
+WHERE prompt_id = 'your-prompt-uuid'
+ORDER BY version DESC;
+```
+
+### 7.2 Outfit Image Storage Setup
+
+**Purpose**: Save rendered outfit combination images to prevent data loss when wardrobe items are deleted
+
+**Execute**: `outfit-storage-enhancement.sql`
+
+- [ ] Open Supabase SQL Editor
+- [ ] Copy entire content dari `outfit-storage-enhancement.sql`
+- [ ] Execute di SQL Editor
+- [ ] Verify columns added to outfit_combinations:
+  ```sql
+  SELECT column_name, data_type, is_nullable
+  FROM information_schema.columns
+  WHERE table_name = 'outfit_combinations'
+    AND column_name IN ('combination_image_url', 'prompt_id', 'needs_image_generation')
+  ORDER BY column_name;
+  ```
+- [ ] Expected columns:
+  - `combination_image_url` (text, nullable) - URL to rendered canvas image
+  - `prompt_id` (uuid, nullable) - Which prompt generated this outfit
+  - `needs_image_generation` (boolean, nullable) - Migration flag for backfill
+
+### 7.3 Storage Bucket: outfit-images
+
+**Manual Steps** (execute in Supabase Dashboard):
+
+- [ ] Buka Dashboard > Storage: https://supabase.com/dashboard/project/ogrfmapwyxodzhlwygrl/storage/buckets
+- [ ] Create bucket: `outfit-images`
+  - Public: **No** (require auth)
+  - File size limit: 5 MB
+  - Allowed MIME types: `image/png`, `image/jpeg`, `image/webp`
+
+### 7.4 Storage RLS Policies for outfit-images
+
+**Important**: Untuk setiap policy, centang **Allowed operation** sesuai jenis policy-nya dan pilih **Target roles: authenticated** saja.
+
+#### Policy 1: SELECT (View own outfit images)
+
+- [ ] Policy Name: `Users can view their own outfit images`
+- [ ] **Allowed operation**: Centang **SELECT** ✅
+- [ ] **Target roles**: Pilih **authenticated** saja ✅
+- [ ] Policy definition:
+  ```sql
+  (bucket_id = 'outfit-images' AND (storage.foldername(name))[1] = auth.uid()::text)
+  ```
+
+#### Policy 2: INSERT (Upload outfit images)
+
+- [ ] Policy Name: `Users can upload outfit images`
+- [ ] **Allowed operation**: Centang **INSERT** ✅
+- [ ] **Target roles**: Pilih **authenticated** saja ✅
+- [ ] Policy definition:
+  ```sql
+  (bucket_id = 'outfit-images' AND (storage.foldername(name))[1] = auth.uid()::text)
+  ```
+
+#### Policy 3: DELETE (Delete own outfit images)
+
+- [ ] Policy Name: `Users can delete their own outfit images`
+- [ ] **Allowed operation**: Centang **DELETE** ✅
+- [ ] **Target roles**: Pilih **authenticated** saja ✅
+- [ ] Policy definition:
+  ```sql
+  (bucket_id = 'outfit-images' AND (storage.foldername(name))[1] = auth.uid()::text)
+  ```
+
+### 7.5 File Structure Convention
+
+**Recommended path structure** di outfit-images bucket:
+```
+{user_id}/{combination_id}.png
+```
+
+**Example**:
+```
+a1b2c3d4-5678-90ef-ghij-klmnopqrstuv/c9d8e7f6-5432-10ab-cdef-ghijklmnopqr.png
+```
+
+**Benefits**:
+- RLS policies work automatically (user_id matches auth.uid())
+- Easy to find outfit images by combination_id
+- PNG format preserves quality for canvas exports
+
+### 7.6 Integration Checklist
+
+#### Frontend Integration (Canvas Export)
+
+- [ ] Update outfit recommendation page untuk export canvas:
+  ```typescript
+  // After generating outfit combinations
+  const canvas = document.getElementById('outfit-canvas');
+  canvas.toBlob(async (blob) => {
+    const filePath = `${userId}/${combinationId}.png`;
+    const { data } = await supabase.storage
+      .from('outfit-images')
+      .upload(filePath, blob);
+
+    const { data: { publicUrl } } = supabase.storage
+      .from('outfit-images')
+      .getPublicUrl(filePath);
+
+    // Update combination with image URL
+    await supabase
+      .from('outfit_combinations')
+      .update({ combination_image_url: publicUrl })
+      .eq('id', combinationId);
+  });
+  ```
+
+- [ ] Update outfit history page untuk show combination_image_url instead of rebuilding from items
+
+#### Backend Integration (API Endpoints)
+
+- [ ] Update `/api/recommend`:
+  - Accept `customPrompt` parameter
+  - Save prompt to `prompts` table if new
+  - Link `prompt_id` to `outfit_combinations`
+  - Log usage to `prompt_usage_logs`
+
+- [ ] Create `/api/prompts` CRUD endpoints:
+  - `GET /api/prompts` - List user's prompts
+  - `POST /api/prompts` - Create new prompt
+  - `PUT /api/prompts/:id` - Update prompt (auto-versions)
+  - `DELETE /api/prompts/:id` - Delete prompt
+  - `POST /api/prompts/:id/rollback` - Rollback to version
+
+- [ ] Update `/api/outfits/:id` DELETE endpoint:
+  - Delete from database (cascades to outfit_items)
+  - Delete image from outfit-images bucket
+
+#### UI Components
+
+- [ ] Create Prompt Management page (`/prompts`):
+  - List all user prompts (grouped by type)
+  - Create/Edit prompt form with Monaco editor
+  - Version history viewer
+  - Rollback functionality
+  - Usage statistics
+
+- [ ] Add prompt selector to outfit recommendation page:
+  - Dropdown to select saved prompts
+  - "Use default" option
+  - "Save as new prompt" button
+
+### 7.7 Testing Checklist
+
+- [ ] **Prompt Management**
+  - [ ] Create new prompt
+  - [ ] Update prompt (check version history created)
+  - [ ] Rollback to previous version
+  - [ ] Delete prompt
+  - [ ] User A cannot see User B's prompts (RLS check)
+
+- [ ] **Outfit Image Storage**
+  - [ ] Generate outfit combination
+  - [ ] Upload canvas image to outfit-images bucket
+  - [ ] Verify image URL saved to combination_image_url
+  - [ ] Delete wardrobe item → outfit image still visible in history
+  - [ ] Delete outfit → image deleted from storage
+
+- [ ] **Prompt Tracking**
+  - [ ] Generate outfit with custom prompt
+  - [ ] Verify prompt_id saved to outfit_combinations
+  - [ ] Check usage count incremented in prompts table
+  - [ ] View prompt usage logs
+
+### 7.8 Helper Queries for Testing
+
+**Check prompt version history**:
+```sql
+SELECT p.name, pv.version, pv.content, pv.created_at
+FROM prompts p
+JOIN prompt_versions pv ON p.id = pv.prompt_id
+WHERE p.user_id = auth.uid()
+ORDER BY pv.created_at DESC;
+```
+
+**Get storage stats**:
+```sql
+SELECT * FROM get_user_outfit_storage_stats(auth.uid());
+```
+
+**Get outfit with full image data**:
+```sql
+SELECT * FROM get_outfit_with_images('combination-uuid-here');
+```
+
+**Find outfits needing image generation (migration)**:
+```sql
+SELECT id, occasion, created_at
+FROM outfit_combinations
+WHERE needs_image_generation = true
+  AND user_id = auth.uid()
+ORDER BY created_at DESC;
+```
+
+---
+
 ## Common Issues & Solutions
 
 ### Issue: RLS Policy Prevents Insert
