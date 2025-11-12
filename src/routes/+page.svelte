@@ -36,33 +36,15 @@
 
 		<!-- Auth Section -->
 		<div class="text-center mb-12">
-			{#if $user}
-				<div class="inline-flex items-center gap-4 bg-white px-6 py-3 rounded-lg shadow-md border border-gray-200">
-					<span class="text-gray-700">Logged in as: <strong>{$user.email}</strong></span>
-					<button
-						on:click={handleLogout}
-						class="px-4 py-1.5 bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors text-sm font-medium"
-					>
-						Logout
-					</button>
-				</div>
-			{:else}
-				<div class="inline-flex items-center gap-3 bg-white px-6 py-3 rounded-lg shadow-md border border-gray-200">
-					<span class="text-gray-600">Get started:</span>
-					<a
-						href="/login"
-						class="px-4 py-1.5 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors text-sm font-medium"
-					>
-						Login
-					</a>
-					<a
-						href="/register"
-						class="px-4 py-1.5 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors text-sm font-medium"
-					>
-						Register
-					</a>
-				</div>
-			{/if}
+			<div class="inline-flex items-center gap-4 bg-white px-6 py-3 rounded-lg shadow-md border border-gray-200">
+				<span class="text-gray-700">Logged in as: <strong>{$user?.email}</strong></span>
+				<button
+					on:click={handleLogout}
+					class="px-4 py-1.5 bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors text-sm font-medium"
+				>
+					Logout
+				</button>
+			</div>
 		</div>
 
 		<!-- PoC Cards -->

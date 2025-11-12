@@ -72,10 +72,10 @@
 			>
 				{loading ? 'Logging in...' : 'Login'}
 			</button>
-
-			<div class="text-center">
-				<a href="/" class="text-sm text-gray-600 hover:text-gray-900">← Back to home</a>
-			</div>
 		</form>
+
+		<p class="text-center text-xs text-gray-500 mt-8">
+			Proof of Concept - Wardope AI
+		</p>
 	</div>
 </div>
