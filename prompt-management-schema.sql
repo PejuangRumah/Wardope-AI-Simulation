@@ -143,9 +143,15 @@ CREATE POLICY "Users can view their own prompts"
   ON prompts FOR SELECT
   USING (auth.uid() = user_id);
 
+-- INSERT policy allows both user inserts AND trigger (system) inserts
+-- IMPORTANT: auth.uid() IS NULL check is required for trigger_create_default_prompts
+-- When trigger runs, auth.uid() returns NULL (system context), not the new user's ID
 CREATE POLICY "Users can insert their own prompts"
   ON prompts FOR INSERT
-  WITH CHECK (auth.uid() = user_id);
+  WITH CHECK (
+    auth.uid() = user_id OR   -- Normal user insert via API
+    auth.uid() IS NULL         -- Allow trigger (system context) insert
+  );
 
 CREATE POLICY "Users can update their own prompts"
   ON prompts FOR UPDATE
@@ -348,21 +354,295 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 -- 9. SEED DATA (Default System Prompts)
 -- ============================================
 
--- Note: These are template defaults. Each user can clone/customize them.
--- You may want to create a separate "system_user" account for default prompts
--- or implement a "is_system_default" boolean flag in the prompts table.
-
--- For now, this section is left empty. Default prompts are still hardcoded
--- in the application (src/lib/services/outfit-generator.ts).
-
--- To implement system defaults in DB:
--- 1. Add column: is_system_default BOOLEAN DEFAULT false
--- 2. Create a system user or use special UUID for system prompts
--- 3. Seed default prompts here with that user_id
--- 4. Update RLS to allow all users to READ system defaults
+-- Note: Default prompts are now auto-generated for each user on signup.
+-- See section 10 below for the trigger implementation.
 
 -- ============================================
--- 10. VERIFICATION QUERIES
+-- 10. AUTO-GENERATE DEFAULT PROMPTS ON USER SIGNUP
+-- ============================================
+
+-- Function: Create 3 default prompts for new user
+-- This function is triggered automatically when a user registers
+CREATE OR REPLACE FUNCTION create_default_prompts_for_new_user()
+RETURNS TRIGGER AS $$
+BEGIN
+  -- 1. Outfit Recommendation Prompt (from src/lib/services/outfit-generator.ts)
+  INSERT INTO prompts (
+    user_id,
+    name,
+    description,
+    type,
+    content,
+    template_variables,
+    is_active,
+    version,
+    metadata
+  ) VALUES (
+    NEW.id, -- New user's UUID
+    'Default Outfit Stylist',
+    'Professional fashion stylist for creating outfit combinations',
+    'outfit_recommendation',
+    'You are a professional fashion stylist AI.
+
+Your task: Create outfit combinations (1-5) from the provided wardrobe items for the occasion: "{{occasion}}".
+
+IMPORTANT: Prioritize quality over quantity. If only 1 great combination exists, return just that one. If no items match the occasion or user preferences well, return an empty combinations array. Don''t force mismatched outfits.
+
+COMBINATION RULES:
+1. Full Body items (Dress/Jumpsuit): Can be standalone OR can be layered with outerwear/accessories
+2. Regular outfit: Must include at minimum:
+   - Top (or Outerwear as top layer)
+   - Bottom
+   - Footwear
+3. Optional additions: Outerwear, Accessories (recommended for completeness)
+
+STYLE GUIDELINES:
+- Color harmony: Consider complementary, analogous, or monochromatic color schemes
+- Occasion appropriateness: Match formality level to "{{occasion}}"
+- Practical combinations: Ensure items work together functionally
+- Style coherence: Maintain consistent aesthetic (casual, formal, sporty, etc.)
+{{note}}
+
+BACKGROUND COLOR RECOMMENDATIONS:
+For each combination, recommend 3-5 background colors suitable for Instagram Story (1080x1920) that:
+- Complement the outfit''s color palette
+- Enhance visual appeal without overwhelming the outfit
+- Consider contrast for better product visibility
+- Provide variety (neutral, bold, soft options)
+
+For each combination, provide:
+1. Reasoning as bullet points (2-4 concise points explaining why items work together)
+2. Background color recommendations with hex codes and descriptive names
+
+Example reasoning format:
+- Color harmony: Navy blazer complements beige chinos for balanced contrast
+- Occasion fit: Professional polish suitable for work/office settings
+- Style coherence: Clean lines maintain minimalist aesthetic',
+    '[{"name": "occasion", "required": true}, {"name": "note", "required": false}]'::jsonb,
+    true, -- is_active
+    1, -- version
+    '{"source": "default", "model": "gpt-4o-2024-08-06"}'::jsonb
+  );
+
+  -- 2. Item Analysis Prompt (from src/lib/constants/item-master.ts)
+  INSERT INTO prompts (
+    user_id,
+    name,
+    description,
+    type,
+    content,
+    template_variables,
+    is_active,
+    version,
+    metadata
+  ) VALUES (
+    NEW.id,
+    'Default Item Analyzer',
+    'Professional fashion item analyzer for e-commerce',
+    'item_analysis',
+    'You are a professional fashion item analyzer for an e-commerce platform.
+
+Analyze the uploaded fashion item image and extract:
+
+1. **Category**: Identify the main category (fullbodies, tops, outerwears, bottoms, accessories, footwears)
+2. **Subcategory**: Identify the specific type (e.g., Shirt, Jeans, Sneaker)
+3. **Colors**: List all visible colors in the item (primary and secondary)
+4. **Fit**: Determine the fit style (oversized, regular, slim, etc.)
+5. **Occasions**: Suggest suitable occasions for wearing this item
+6. **Description**: Provide a detailed description including:
+   - Brand identification if visible
+   - Material estimation (cotton, denim, leather, etc.)
+   - Style characteristics (casual, formal, sporty, etc.)
+   - Unique design features
+   - Overall aesthetic
+
+**IMPORTANT**: Only use values from the provided category, color, fit, and occasion lists.
+
+Be accurate, specific, and professional in your analysis.',
+    '[]'::jsonb, -- No template variables
+    true,
+    1,
+    '{"source": "default", "model": "gpt-4o"}'::jsonb
+  );
+
+  -- 3. Item Improvement Prompt (from src/lib/constants/item-master.ts)
+  INSERT INTO prompts (
+    user_id,
+    name,
+    description,
+    type,
+    content,
+    template_variables,
+    is_active,
+    version,
+    metadata
+  ) VALUES (
+    NEW.id,
+    'Default Image Improver',
+    'Professional e-commerce product photo enhancement',
+    'item_improvement',
+    'Professional e-commerce product photo
+
+Requirements:
+- Clean, white or light neutral background (studio-style)
+- Front-facing view, centered composition
+- Professional lighting with no harsh shadows
+- Remove any other objects, people, hangers, or distractions from the background
+- High-quality product photography style
+- Suitable for premium online fashion retail
+- Item should look pristine, well-pressed, and professionally presented
+- Sharp focus, high resolution appearance
+- IMPORTANT: Maintain the original design, colors, patterns, and shape of the clothing item
+
+The result should look like a professional catalog photo from a premium fashion brand website or high-end e-commerce store.',
+    '[]'::jsonb, -- No template variables
+    true,
+    1,
+    '{"source": "default", "model": "gpt-image-1"}'::jsonb
+  );
+
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Trigger: Auto-create default prompts when user registers
+CREATE OR REPLACE TRIGGER trigger_create_default_prompts
+  AFTER INSERT ON auth.users
+  FOR EACH ROW
+  EXECUTE FUNCTION create_default_prompts_for_new_user();
+
+-- ============================================
+-- 11. BACKFILL EXISTING USERS (Manual Execution)
+-- ============================================
+
+-- If you already have existing users without default prompts, run this:
+-- WARNING: This will create 3 prompts for ALL users who don't have any prompts yet
+
+-- DO $$
+-- DECLARE
+--   user_record RECORD;
+-- BEGIN
+--   FOR user_record IN
+--     SELECT id FROM auth.users
+--     WHERE NOT EXISTS (
+--       SELECT 1 FROM prompts WHERE user_id = auth.users.id
+--     )
+--   LOOP
+--     PERFORM create_default_prompts_for_new_user_manual(user_record.id);
+--   END LOOP;
+-- END $$;
+
+-- Helper function for manual backfill (bypasses trigger)
+CREATE OR REPLACE FUNCTION create_default_prompts_for_new_user_manual(p_user_id UUID)
+RETURNS VOID AS $$
+BEGIN
+  -- Same logic as trigger, but accepts user_id parameter
+  -- (Copy-paste INSERT statements from above with NEW.id replaced by p_user_id)
+
+  -- 1. Outfit Recommendation
+  INSERT INTO prompts (user_id, name, description, type, content, template_variables, is_active, version, metadata)
+  VALUES (
+    p_user_id,
+    'Default Outfit Stylist',
+    'Professional fashion stylist for creating outfit combinations',
+    'outfit_recommendation',
+    'You are a professional fashion stylist AI.
+
+Your task: Create outfit combinations (1-5) from the provided wardrobe items for the occasion: "{{occasion}}".
+
+IMPORTANT: Prioritize quality over quantity. If only 1 great combination exists, return just that one. If no items match the occasion or user preferences well, return an empty combinations array. Don''t force mismatched outfits.
+
+COMBINATION RULES:
+1. Full Body items (Dress/Jumpsuit): Can be standalone OR can be layered with outerwear/accessories
+2. Regular outfit: Must include at minimum:
+   - Top (or Outerwear as top layer)
+   - Bottom
+   - Footwear
+3. Optional additions: Outerwear, Accessories (recommended for completeness)
+
+STYLE GUIDELINES:
+- Color harmony: Consider complementary, analogous, or monochromatic color schemes
+- Occasion appropriateness: Match formality level to "{{occasion}}"
+- Practical combinations: Ensure items work together functionally
+- Style coherence: Maintain consistent aesthetic (casual, formal, sporty, etc.)
+{{note}}
+
+BACKGROUND COLOR RECOMMENDATIONS:
+For each combination, recommend 3-5 background colors suitable for Instagram Story (1080x1920) that:
+- Complement the outfit''s color palette
+- Enhance visual appeal without overwhelming the outfit
+- Consider contrast for better product visibility
+- Provide variety (neutral, bold, soft options)
+
+For each combination, provide:
+1. Reasoning as bullet points (2-4 concise points explaining why items work together)
+2. Background color recommendations with hex codes and descriptive names
+
+Example reasoning format:
+- Color harmony: Navy blazer complements beige chinos for balanced contrast
+- Occasion fit: Professional polish suitable for work/office settings
+- Style coherence: Clean lines maintain minimalist aesthetic',
+    '[{"name": "occasion", "required": true}, {"name": "note", "required": false}]'::jsonb,
+    true, 1, '{"source": "default", "model": "gpt-4o-2024-08-06"}'::jsonb
+  );
+
+  -- 2. Item Analysis
+  INSERT INTO prompts (user_id, name, description, type, content, template_variables, is_active, version, metadata)
+  VALUES (
+    p_user_id,
+    'Default Item Analyzer',
+    'Professional fashion item analyzer for e-commerce',
+    'item_analysis',
+    'You are a professional fashion item analyzer for an e-commerce platform.
+
+Analyze the uploaded fashion item image and extract:
+
+1. **Category**: Identify the main category (fullbodies, tops, outerwears, bottoms, accessories, footwears)
+2. **Subcategory**: Identify the specific type (e.g., Shirt, Jeans, Sneaker)
+3. **Colors**: List all visible colors in the item (primary and secondary)
+4. **Fit**: Determine the fit style (oversized, regular, slim, etc.)
+5. **Occasions**: Suggest suitable occasions for wearing this item
+6. **Description**: Provide a detailed description including:
+   - Brand identification if visible
+   - Material estimation (cotton, denim, leather, etc.)
+   - Style characteristics (casual, formal, sporty, etc.)
+   - Unique design features
+   - Overall aesthetic
+
+**IMPORTANT**: Only use values from the provided category, color, fit, and occasion lists.
+
+Be accurate, specific, and professional in your analysis.',
+    '[]'::jsonb, true, 1, '{"source": "default", "model": "gpt-4o"}'::jsonb
+  );
+
+  -- 3. Item Improvement
+  INSERT INTO prompts (user_id, name, description, type, content, template_variables, is_active, version, metadata)
+  VALUES (
+    p_user_id,
+    'Default Image Improver',
+    'Professional e-commerce product photo enhancement',
+    'item_improvement',
+    'Professional e-commerce product photo
+
+Requirements:
+- Clean, white or light neutral background (studio-style)
+- Front-facing view, centered composition
+- Professional lighting with no harsh shadows
+- Remove any other objects, people, hangers, or distractions from the background
+- High-quality product photography style
+- Suitable for premium online fashion retail
+- Item should look pristine, well-pressed, and professionally presented
+- Sharp focus, high resolution appearance
+- IMPORTANT: Maintain the original design, colors, patterns, and shape of the clothing item
+
+The result should look like a professional catalog photo from a premium fashion brand website or high-end e-commerce store.',
+    '[]'::jsonb, true, 1, '{"source": "default", "model": "gpt-image-1"}'::jsonb
+  );
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- ============================================
+-- 12. VERIFICATION QUERIES
 -- ============================================
 
 -- Check if tables were created successfully:
@@ -379,11 +659,41 @@ JOIN pg_enum ON pg_type.oid = pg_enum.enumtypid
 WHERE typname = 'prompt_type'
 ORDER BY enumsortorder;
 
+-- Check if trigger was created:
+SELECT trigger_name, event_object_table, action_statement
+FROM information_schema.triggers
+WHERE trigger_name = 'trigger_create_default_prompts';
+
+-- Verify default prompts exist for a user (replace with actual user_id):
+-- SELECT id, name, type, is_active, version, created_at
+-- FROM prompts
+-- WHERE user_id = 'your-user-uuid-here'
+-- ORDER BY type;
+
 -- ============================================
--- USAGE EXAMPLES
+-- 13. USAGE EXAMPLES
 -- ============================================
 
--- Example 1: Create a new prompt
+-- Example 1: Backfill existing users with default prompts
+-- Run this to create default prompts for users who registered before the trigger was added:
+-- DO $$
+-- DECLARE
+--   user_record RECORD;
+--   prompt_count INT;
+-- BEGIN
+--   FOR user_record IN SELECT id FROM auth.users LOOP
+--     -- Check if user already has prompts
+--     SELECT COUNT(*) INTO prompt_count FROM prompts WHERE user_id = user_record.id;
+--
+--     IF prompt_count = 0 THEN
+--       -- Create default prompts
+--       PERFORM create_default_prompts_for_new_user_manual(user_record.id);
+--       RAISE NOTICE 'Created default prompts for user: %', user_record.id;
+--     END IF;
+--   END LOOP;
+-- END $$;
+
+-- Example 2: Create a new custom prompt (user can have multiple prompts)
 -- INSERT INTO prompts (user_id, name, description, type, content, template_variables)
 -- VALUES (
 --   auth.uid(),
@@ -394,10 +704,16 @@ ORDER BY enumsortorder;
 --   '[{"name": "occasion", "required": true}, {"name": "note", "required": false}, {"name": "num_combinations", "required": true}]'::jsonb
 -- );
 
--- Example 2: Get user's active prompt for outfit recommendation
+-- Example 3: Get user's active prompt for outfit recommendation
 -- SELECT * FROM get_user_active_prompt(auth.uid(), 'outfit_recommendation');
 
--- Example 3: Log prompt usage
+-- Example 4: Get all prompts for current user
+-- SELECT id, name, type, is_active, usage_count, last_used_at, created_at
+-- FROM prompts
+-- WHERE user_id = auth.uid()
+-- ORDER BY type, created_at DESC;
+
+-- Example 5: Log prompt usage
 -- INSERT INTO prompt_usage_logs (prompt_id, user_id, prompt_version, outfit_combination_id, tokens_used, api_cost_rp)
 -- VALUES (
 --   'prompt-uuid-here',
@@ -408,16 +724,16 @@ ORDER BY enumsortorder;
 --   150.00
 -- );
 
--- Example 4: Rollback prompt to version 2
+-- Example 6: Rollback prompt to version 2
 -- SELECT rollback_prompt_to_version('prompt-uuid-here', 2);
 
--- Example 5: View prompt version history
+-- Example 7: View prompt version history
 -- SELECT pv.version, pv.content, pv.created_at, pv.change_summary
 -- FROM prompt_versions pv
 -- WHERE pv.prompt_id = 'your-prompt-uuid'
 -- ORDER BY pv.version DESC;
 
--- Example 6: Get usage analytics for a prompt
+-- Example 8: Get usage analytics for a prompt
 -- SELECT
 --   DATE_TRUNC('day', used_at) AS day,
 --   COUNT(*) AS usage_count,
@@ -429,16 +745,60 @@ ORDER BY enumsortorder;
 -- ORDER BY day DESC;
 
 -- ============================================
--- EXECUTION NOTES
+-- 14. EXECUTION NOTES
 -- ============================================
 
 -- 1. Execute this script in Supabase SQL Editor
--- 2. Verify tables created with verification queries above
--- 3. Test RLS policies by querying as authenticated user
--- 4. Integrate with application:
---    - Update API endpoints to save/load prompts from DB
+-- 2. Verify tables created with verification queries in section 12
+-- 3. Verify trigger created (check query in section 12)
+-- 4. Test RLS policies by querying as authenticated user
+-- 5. **For existing users**: Run backfill query (Example 1 in section 13) to create default prompts
+-- 6. Test trigger: Create a new test user and verify 3 default prompts are auto-generated
+-- 7. Integrate with application:
+--    - Update API endpoints to save/load prompts from DB instead of hardcoded defaults
 --    - Add UI for prompt management (CRUD operations)
 --    - Log prompt usage in /api/recommend endpoint
 --    - Implement rollback functionality in frontend
+
+-- ============================================
+-- KEY FEATURES SUMMARY
+-- ============================================
+
+-- ✅ Auto-generate 3 default prompts on user registration:
+--    1. Default Outfit Stylist (outfit_recommendation)
+--    2. Default Item Analyzer (item_analysis)
+--    3. Default Image Improver (item_improvement)
+--
+-- ✅ Users can edit prompts (auto-versioned via trigger)
+-- ✅ Rollback to previous versions via helper function
+-- ✅ Usage tracking linked to outfit_combinations
+-- ✅ RLS policies ensure users only manage their own prompts
+
+-- ============================================
+-- TROUBLESHOOTING
+-- ============================================
+
+-- Issue: User registration fails with "Database error saving new user"
+-- Cause: RLS policy blocks trigger inserts because auth.uid() returns NULL in trigger context
+-- Solution: Ensure INSERT policy allows NULL auth.uid() (see section 6, line 149-154)
+--
+-- Verify fix:
+-- SELECT policyname, cmd, qual
+-- FROM pg_policies
+-- WHERE tablename = 'prompts' AND policyname LIKE '%insert%';
+--
+-- Expected: WITH CHECK should include "OR auth.uid() IS NULL"
+
+-- Issue: Default prompts not created for new users
+-- Cause: Trigger not installed or disabled
+-- Solution: Check trigger exists:
+-- SELECT trigger_name FROM information_schema.triggers
+-- WHERE trigger_name = 'trigger_create_default_prompts';
+--
+-- Reinstall if missing: Execute section 10 again
+
+-- Issue: Existing users don't have default prompts
+-- Cause: They registered before trigger was added
+-- Solution: Run backfill query in Example 1, section 13
 
 -- Last Updated: 2025-11-12
