@@ -1,12 +1,7 @@
 import { redirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 
-export const load: PageServerLoad = async ({ locals }) => {
-	if (!locals.session) {
-		throw redirect(303, '/login');
-	}
-
-	return {
-		session: locals.session
-	};
+export const load: PageServerLoad = async () => {
+	// Redirect to wardrobe (default dashboard view)
+	throw redirect(303, '/wardrobe');
 };
