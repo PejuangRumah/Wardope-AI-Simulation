@@ -1,11 +1,6 @@
-import { createClient } from '@supabase/supabase-js';
+import { createBrowserClient } from '@supabase/ssr';
 import { PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_ANON_KEY } from '$env/static/public';
 
-export const supabase = createClient(PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_ANON_KEY, {
-	auth: {
-		autoRefreshToken: true,
-		persistSession: true,
-		detectSessionInUrl: true,
-		storage: typeof window !== 'undefined' ? window.localStorage : undefined
-	}
-});
+// Browser client for client-side operations
+// Uses singleton pattern - only creates one instance
+export const supabase = createBrowserClient(PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_ANON_KEY);
