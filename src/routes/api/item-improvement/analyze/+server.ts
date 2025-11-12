@@ -48,19 +48,6 @@ export const POST: RequestHandler = async ({ request }) => {
 		const totalCostUsd = textInputCost + textOutputCost + imageCost;
 		const totalCostIdr = Math.ceil(totalCostUsd * USD_TO_IDR); // Round up to integer (prevents decimal locale issues)
 
-		// DEBUG: Log cost calculation details
-		console.log('🔍 ANALYSIS COST DEBUG:', {
-			textInputCost,
-			textOutputCost,
-			imageCost,
-			totalCostUsd,
-			USD_TO_IDR,
-			totalCostIdr,
-			totalCostIdrType: typeof totalCostIdr,
-			promptTokens,
-			completionTokens,
-			processingTime
-		});
 
 		// 5. Return response
 		const response: AnalysisResponse = {
