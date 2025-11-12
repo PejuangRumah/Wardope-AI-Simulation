@@ -1,9 +1,11 @@
 <script lang="ts">
 	import { user } from '$lib/stores/auth';
 	import { supabase } from '$lib/supabase';
+	import { goto } from '$app/navigation';
 
 	async function handleLogout() {
 		await supabase.auth.signOut();
+		goto('/login');
 	}
 </script>
 

@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/stores';
-	import { Shirt, Sparkles, Image, Database, ChevronDown, ChevronRight } from 'lucide-svelte';
+	import { Shirt, Sparkles, Image, Database, ChevronDown, ChevronRight, Menu } from 'lucide-svelte';
+	import { sidebarCollapsed } from '$lib/stores/sidebar';
 
 	let masterDataExpanded = false;
 
@@ -14,77 +15,131 @@
 		masterDataExpanded = true;
 	}
 
+	// Collapse master data when sidebar is collapsed
+	$: if ($sidebarCollapsed && masterDataExpanded) {
+		masterDataExpanded = false;
+	}
+
 	function toggleMasterData() {
 		masterDataExpanded = !masterDataExpanded;
 	}
 </script>
 
-<aside class="bg-gray-50 border-r border-gray-200 w-64 flex flex-col">
+<aside
+	class="bg-gray-50 border-r border-gray-200 flex flex-col transition-all duration-300"
+	class:w-64={!$sidebarCollapsed}
+	class:w-16={$sidebarCollapsed}
+>
+	<!-- Toggle Button -->
+	<div class="px-4 py-4 border-b border-gray-200">
+		<button
+			on:click={sidebarCollapsed.toggle}
+			class="w-full flex items-center justify-center p-2 rounded-lg text-gray-700 hover:bg-gray-200 transition-colors"
+			title={$sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+		>
+			<Menu class="w-5 h-5" />
+		</button>
+	</div>
+
 	<nav class="flex-1 px-4 py-6 space-y-1">
 		<!-- Wardrobe -->
 		<a
 			href="/wardrobe"
-			class="flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors"
+			class="flex items-center gap-3 py-2.5 rounded-lg text-sm font-medium transition-colors"
+			class:px-4={!$sidebarCollapsed}
+			class:px-2={$sidebarCollapsed}
+			class:justify-center={$sidebarCollapsed}
 			class:bg-indigo-50={isActive('/wardrobe')}
 			class:text-indigo-700={isActive('/wardrobe')}
 			class:text-gray-700={!isActive('/wardrobe')}
 			class:hover:bg-gray-100={!isActive('/wardrobe')}
+			title={$sidebarCollapsed ? 'Wardrobe' : ''}
 		>
-			<Shirt class="w-5 h-5" />
-			<span>Wardrobe</span>
+			<Shirt class="w-5 h-5 flex-shrink-0" />
+			{#if !$sidebarCollapsed}
+				<span>Wardrobe</span>
+			{/if}
 		</a>
 
 		<!-- Outfit Recommendation -->
 		<a
 			href="/outfit-recommendation"
-			class="flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors"
+			class="flex items-center gap-3 py-2.5 rounded-lg text-sm font-medium transition-colors"
+			class:px-4={!$sidebarCollapsed}
+			class:px-2={$sidebarCollapsed}
+			class:justify-center={$sidebarCollapsed}
 			class:bg-indigo-50={isActive('/outfit-recommendation')}
 			class:text-indigo-700={isActive('/outfit-recommendation')}
 			class:text-gray-700={!isActive('/outfit-recommendation')}
 			class:hover:bg-gray-100={!isActive('/outfit-recommendation')}
+			title={$sidebarCollapsed ? 'Outfit Recommendation' : ''}
 		>
-			<Sparkles class="w-5 h-5" />
-			<span>Outfit Recommendation</span>
+			<Sparkles class="w-5 h-5 flex-shrink-0" />
+			{#if !$sidebarCollapsed}
+				<span>Outfit Recommendation</span>
+			{/if}
 		</a>
 
 		<!-- Item Improvement -->
 		<a
 			href="/item-improvement"
-			class="flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors"
+			class="flex items-center gap-3 py-2.5 rounded-lg text-sm font-medium transition-colors"
+			class:px-4={!$sidebarCollapsed}
+			class:px-2={$sidebarCollapsed}
+			class:justify-center={$sidebarCollapsed}
 			class:bg-indigo-50={isActive('/item-improvement')}
 			class:text-indigo-700={isActive('/item-improvement')}
 			class:text-gray-700={!isActive('/item-improvement')}
 			class:hover:bg-gray-100={!isActive('/item-improvement')}
+			title={$sidebarCollapsed ? 'Item Improvement' : ''}
 		>
-			<Image class="w-5 h-5" />
-			<span>Item Improvement</span>
+			<Image class="w-5 h-5 flex-shrink-0" />
+			{#if !$sidebarCollapsed}
+				<span>Item Improvement</span>
+			{/if}
 		</a>
 
 		<!-- Divider -->
-		<div class="pt-4 pb-2">
-			<div class="border-t border-gray-200"></div>
-		</div>
+		{#if !$sidebarCollapsed}
+			<div class="pt-4 pb-2">
+				<div class="border-t border-gray-200"></div>
+			</div>
+		{/if}
 
 		<!-- Master Data (Expandable) -->
-		<button
-			on:click={toggleMasterData}
-			class="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors"
-			class:bg-indigo-50={isMasterDataActive}
-			class:text-indigo-700={isMasterDataActive}
-			class:text-gray-700={!isMasterDataActive}
-			class:hover:bg-gray-100={!isMasterDataActive}
-		>
-			<Database class="w-5 h-5" />
-			<span class="flex-1 text-left">Manage Master Data</span>
-			{#if masterDataExpanded}
-				<ChevronDown class="w-4 h-4" />
-			{:else}
-				<ChevronRight class="w-4 h-4" />
-			{/if}
-		</button>
+		{#if !$sidebarCollapsed}
+			<button
+				on:click={toggleMasterData}
+				class="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors"
+				class:bg-indigo-50={isMasterDataActive}
+				class:text-indigo-700={isMasterDataActive}
+				class:text-gray-700={!isMasterDataActive}
+				class:hover:bg-gray-100={!isMasterDataActive}
+			>
+				<Database class="w-5 h-5 flex-shrink-0" />
+				<span class="flex-1 text-left">Manage Master Data</span>
+				{#if masterDataExpanded}
+					<ChevronDown class="w-4 h-4" />
+				{:else}
+					<ChevronRight class="w-4 h-4" />
+				{/if}
+			</button>
+		{:else}
+			<a
+				href="/master-data/categories"
+				class="flex items-center gap-3 py-2.5 rounded-lg text-sm font-medium transition-colors px-2 justify-center"
+				class:bg-indigo-50={isMasterDataActive}
+				class:text-indigo-700={isMasterDataActive}
+				class:text-gray-700={!isMasterDataActive}
+				class:hover:bg-gray-100={!isMasterDataActive}
+				title="Manage Master Data"
+			>
+				<Database class="w-5 h-5 flex-shrink-0" />
+			</a>
+		{/if}
 
 		<!-- Master Data Submenu -->
-		{#if masterDataExpanded}
+		{#if masterDataExpanded && !$sidebarCollapsed}
 			<div class="ml-8 space-y-1 mt-1">
 				<a
 					href="/master-data/categories"
@@ -141,7 +196,9 @@
 	</nav>
 
 	<!-- Footer Info -->
-	<div class="px-4 py-4 border-t border-gray-200">
-		<p class="text-xs text-gray-500 text-center">Proof of Concept - Wardope AI</p>
-	</div>
+	{#if !$sidebarCollapsed}
+		<div class="px-4 py-4 border-t border-gray-200">
+			<p class="text-xs text-gray-500 text-center">Proof of Concept - Wardope AI</p>
+		</div>
+	{/if}
 </aside>
