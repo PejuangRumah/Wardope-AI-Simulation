@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { supabase } from '$lib/supabase';
 	import { goto } from '$app/navigation';
 
 	let email = '';
@@ -13,23 +12,35 @@
 		error = '';
 		success = false;
 
-		const { data, error: signUpError } = await supabase.auth.signUp({
-			email,
-			password
-		});
+		try {
+			const response = await fetch('/api/auth/register', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify({ email, password })
+			});
 
-		if (signUpError) {
-			error = signUpError.message;
-			loading = false;
-		} else {
-			// Check if email confirmation is required
-			if (data.user && !data.session) {
-				success = true;
-				error = 'Please check your email to confirm your account.';
-			} else {
-				// Auto-login successful, redirect to homepage
-				goto('/');
+			const result = await response.json();
+
+			if (!response.ok) {
+				error = result.error || 'Terjadi kesalahan saat registrasi';
+				loading = false;
+				return;
 			}
+
+			// Registration successful
+			if (result.requiresConfirmation) {
+				success = true;
+				error = result.message || 'Silakan cek email Anda untuk konfirmasi akun.';
+			} else {
+				// Auto-login successful, redirect to wardrobe
+				goto('/wardrobe');
+			}
+		} catch (err) {
+			console.error('Registration error:', err);
+			error = 'Terjadi kesalahan saat registrasi. Silakan coba lagi.';
+		} finally {
 			loading = false;
 		}
 	}
