@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { page } from '$app/stores';
-	import { Shirt, Sparkles, Image, Database, ChevronDown, ChevronRight, Menu } from 'lucide-svelte';
+	import { Shirt, Sparkles, Image, Database, ChevronDown, ChevronRight, Menu, FileText } from 'lucide-svelte';
 	import { sidebarCollapsed } from '$lib/stores/sidebar';
 
 	let masterDataExpanded = false;
@@ -96,6 +96,25 @@
 			<Image class="w-5 h-5 flex-shrink-0" />
 			{#if !$sidebarCollapsed}
 				<span>Item Improvement</span>
+			{/if}
+		</a>
+
+		<!-- Prompt Management -->
+		<a
+			href="/prompt-management"
+			class="flex items-center gap-3 py-2.5 rounded-lg text-sm font-medium transition-colors"
+			class:px-4={!$sidebarCollapsed}
+			class:px-2={$sidebarCollapsed}
+			class:justify-center={$sidebarCollapsed}
+			class:bg-indigo-50={isActive('/prompt-management')}
+			class:text-indigo-700={isActive('/prompt-management')}
+			class:text-gray-700={!isActive('/prompt-management')}
+			class:hover:bg-gray-100={!isActive('/prompt-management')}
+			title={$sidebarCollapsed ? 'Prompt Management' : ''}
+		>
+			<FileText class="w-5 h-5 flex-shrink-0" />
+			{#if !$sidebarCollapsed}
+				<span>Prompt Management</span>
 			{/if}
 		</a>
 
