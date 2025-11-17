@@ -20,11 +20,14 @@ CREATE TABLE public.colors (
 );
 CREATE TABLE public.fits (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
-  name text NOT NULL UNIQUE,
+  category_id uuid NOT NULL,
+  name text NOT NULL,
   display_order integer DEFAULT 0,
   created_at timestamp with time zone NOT NULL DEFAULT now(),
   updated_at timestamp with time zone NOT NULL DEFAULT now(),
-  CONSTRAINT fits_pkey PRIMARY KEY (id)
+  CONSTRAINT fits_pkey PRIMARY KEY (id),
+  CONSTRAINT fits_category_id_fkey FOREIGN KEY (category_id) REFERENCES public.categories(id) ON DELETE CASCADE,
+  CONSTRAINT fits_category_id_name_key UNIQUE (category_id, name)
 );
 CREATE TABLE public.item_embeddings (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
