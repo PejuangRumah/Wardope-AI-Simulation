@@ -26,8 +26,7 @@ CREATE TABLE public.fits (
   created_at timestamp with time zone NOT NULL DEFAULT now(),
   updated_at timestamp with time zone NOT NULL DEFAULT now(),
   CONSTRAINT fits_pkey PRIMARY KEY (id),
-  CONSTRAINT fits_category_id_fkey FOREIGN KEY (category_id) REFERENCES public.categories(id) ON DELETE CASCADE,
-  CONSTRAINT fits_category_id_name_key UNIQUE (category_id, name)
+  CONSTRAINT fits_category_id_fkey FOREIGN KEY (category_id) REFERENCES public.categories(id)
 );
 CREATE TABLE public.item_embeddings (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -133,6 +132,24 @@ CREATE TABLE public.subcategories (
   updated_at timestamp with time zone NOT NULL DEFAULT now(),
   CONSTRAINT subcategories_pkey PRIMARY KEY (id),
   CONSTRAINT subcategories_category_id_fkey FOREIGN KEY (category_id) REFERENCES public.categories(id)
+);
+CREATE TABLE public.wardrobe_item_colors (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  wardrobe_item_id uuid NOT NULL,
+  color_id uuid NOT NULL,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT wardrobe_item_colors_pkey PRIMARY KEY (id),
+  CONSTRAINT wardrobe_item_colors_wardrobe_item_id_fkey FOREIGN KEY (wardrobe_item_id) REFERENCES public.wardrobe_items(id),
+  CONSTRAINT wardrobe_item_colors_color_id_fkey FOREIGN KEY (color_id) REFERENCES public.colors(id)
+);
+CREATE TABLE public.wardrobe_item_occasions (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  wardrobe_item_id uuid NOT NULL,
+  occasion_id uuid NOT NULL,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT wardrobe_item_occasions_pkey PRIMARY KEY (id),
+  CONSTRAINT wardrobe_item_occasions_wardrobe_item_id_fkey FOREIGN KEY (wardrobe_item_id) REFERENCES public.wardrobe_items(id),
+  CONSTRAINT wardrobe_item_occasions_occasion_id_fkey FOREIGN KEY (occasion_id) REFERENCES public.occasions(id)
 );
 CREATE TABLE public.wardrobe_items (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
