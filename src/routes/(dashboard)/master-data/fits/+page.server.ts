@@ -1,6 +1,9 @@
 import type { PageServerLoad } from './$types';
 
-export const load: PageServerLoad = async ({ locals: { supabase } }) => {
+export const load: PageServerLoad = async ({ locals: { supabase }, parent }) => {
+	// Get master data from parent layout (includes categories)
+	const { masterData } = await parent();
+
 	// Load fits with category names (JOIN)
 	const { data: fits, error: fitsError } = await supabase
 		.from('fits')
@@ -11,18 +14,8 @@ export const load: PageServerLoad = async ({ locals: { supabase } }) => {
 		console.error('Error loading fits:', fitsError);
 	}
 
-	// Load all categories for dropdown selector
-	const { data: categories, error: categoriesError } = await supabase
-		.from('categories')
-		.select('*')
-		.order('display_order', { ascending: true });
-
-	if (categoriesError) {
-		console.error('Error loading categories:', categoriesError);
-	}
-
 	return {
 		fits: fits || [],
-		categories: categories || []
+		categories: masterData.categories // Use from layout
 	};
 };
