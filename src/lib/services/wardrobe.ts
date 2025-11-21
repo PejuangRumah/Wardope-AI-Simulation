@@ -13,7 +13,7 @@ import type { WardrobeItemCreate, WardrobeItemUpdate, WardrobeFilters, WardrobeL
  */
 export async function uploadImageToStorage(
 	base64DataUri: string,
-	bucket: 'wardrobe-originals' | 'wardrobe-improved',
+	bucket: 'wardrobe-images' | 'improved-images',
 	userId: string,
 	supabase: SupabaseClient
 ): Promise<string> {
@@ -306,7 +306,7 @@ export async function createWardrobeItem(
 	// Upload images to storage
 	const imageUrl = await uploadImageToStorage(
 		data.originalImage,
-		'wardrobe-originals',
+		'wardrobe-images',
 		userId,
 		supabase
 	);
@@ -315,7 +315,7 @@ export async function createWardrobeItem(
 	if (data.improvedImage) {
 		improvedImageUrl = await uploadImageToStorage(
 			data.improvedImage,
-			'wardrobe-improved',
+			'improved-images',
 			userId,
 			supabase
 		);
@@ -406,7 +406,7 @@ export async function updateWardrobeItem(
 		// Upload new original image
 		newImageUrl = await uploadImageToStorage(
 			data.originalImage,
-			'wardrobe-originals',
+			'wardrobe-images',
 			userId,
 			supabase
 		);
@@ -420,7 +420,7 @@ export async function updateWardrobeItem(
 		// Upload new improved image
 		newImprovedImageUrl = await uploadImageToStorage(
 			data.improvedImage,
-			'wardrobe-improved',
+			'improved-images',
 			userId,
 			supabase
 		);
