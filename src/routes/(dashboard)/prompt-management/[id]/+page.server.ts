@@ -1,38 +1,37 @@
 import type { PageServerLoad } from './$types';
-import { redirect, error } from '@sveltejs/kit';
+import { error } from '@sveltejs/kit';
 
-export const load: PageServerLoad = async ({ params, locals: { supabase, getSession } }) => {
-	// Check authentication
-	const session = await getSession();
-	if (!session?.user) {
-		throw redirect(303, '/auth/login');
-	}
-
-	const promptId = params.id;
+export const load: PageServerLoad = async ({ params, locals: { supabase }, parent }) => {
+	// Get session from parent layout (already validated)
+	const { session } = await parent();
 	const userId = session.user.id;
+	const promptId = params.id;
 
-	// Fetch prompt details
-	const { data: prompt, error: promptError } = await supabase
-		.from('prompts')
-		.select('*')
-		.eq('id', promptId)
-		.eq('user_id', userId)
-		.single();
+	// Fetch prompt and versions in parallel
+	const [promptRes, versionsRes] = await Promise.all([
+		supabase
+			.from('prompts')
+			.select('*')
+			.eq('id', promptId)
+			.eq('user_id', userId)
+			.single(),
+		supabase
+			.from('prompt_versions')
+			.select('*')
+			.eq('prompt_id', promptId)
+			.order('version', { ascending: false })
+	]);
 
-	if (promptError || !prompt) {
+	if (promptRes.error || !promptRes.data) {
 		throw error(404, 'Prompt not found');
 	}
 
-	// Fetch all versions
-	const { data: versions, error: versionsError } = await supabase
-		.from('prompt_versions')
-		.select('*')
-		.eq('prompt_id', promptId)
-		.order('version', { ascending: false }); // Newest first
-
-	if (versionsError) {
-		console.error('Error fetching versions:', versionsError);
+	if (versionsRes.error) {
+		console.error('Error fetching versions:', versionsRes.error);
 	}
+
+	const prompt = promptRes.data;
+	const versions = versionsRes.data || [];
 
 	const typeLabels = {
 		item_analysis: 'Item Analysis',
@@ -43,6 +42,6 @@ export const load: PageServerLoad = async ({ params, locals: { supabase, getSess
 	return {
 		prompt,
 		typeLabel: typeLabels[prompt.type as keyof typeof typeLabels],
-		versions: versions || []
+		versions
 	};
 };
