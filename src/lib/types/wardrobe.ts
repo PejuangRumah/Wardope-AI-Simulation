@@ -32,10 +32,10 @@ export interface WardrobeItemCreate {
 	description: string;
 	category: string;
 	subcategory: string;
-	color: string;
+	colors: string[]; // Array of color names (changed from single color)
 	fit?: string;
 	brand?: string;
-	occasion?: string;
+	occasions?: string[]; // Array of occasion names (changed from single occasion)
 	analysisMetadata?: {
 		confidence?: string;
 		colors?: string[];
@@ -51,20 +51,29 @@ export interface WardrobeItemUpdate {
 	description?: string;
 	category?: string;
 	subcategory?: string;
-	color?: string;
+	colors?: string[]; // Array of color names (changed from single color)
 	fit?: string;
 	brand?: string;
-	occasion?: string;
+	occasions?: string[]; // Array of occasion names (changed from single occasion)
 	originalImage?: string;
 	improvedImage?: string;
 	analysisMetadata?: Record<string, any>;
 }
 
 /**
+ * Wardrobe item with joined colors and occasions
+ * This extends WardrobeItemDB with arrays from junction tables
+ */
+export interface WardrobeItem extends WardrobeItemDB {
+	colors: Array<{ id: string; name: string; hex_code?: string }>;
+	occasions: Array<{ id: string; name: string; description?: string }>;
+}
+
+/**
  * Paginated list response
  */
 export interface WardrobeListResponse {
-	items: WardrobeItemDB[];
+	items: WardrobeItem[];
 	total: number;
 	page: number;
 	limit: number;
