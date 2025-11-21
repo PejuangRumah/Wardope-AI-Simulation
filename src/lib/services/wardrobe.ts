@@ -9,7 +9,7 @@ import type { WardrobeItemCreate, WardrobeItemUpdate, WardrobeFilters, WardrobeL
  * @param bucket - Storage bucket name
  * @param userId - User ID for organizing files
  * @param supabase - Supabase client
- * @returns Public URL of the uploaded image
+ * @returns Storage path of the uploaded image (not full URL)
  */
 export async function uploadImageToStorage(
 	base64DataUri: string,
@@ -50,13 +50,51 @@ export async function uploadImageToStorage(
 		throw new Error(`Failed to upload image: ${error.message}`);
 	}
 
-	// Get public URL
-	const { data: { publicUrl } } = supabase
+	// Return the storage path (not full URL) - signed URLs will be generated on fetch
+	return data.path;
+}
+
+/**
+ * Generate a signed URL for accessing private storage
+ * @param filePath - Storage path of the file
+ * @param bucket - Storage bucket name
+ * @param supabase - Supabase client
+ * @param expiresIn - URL expiration time in seconds (default: 1 hour)
+ * @returns Signed URL for accessing the file
+ */
+export async function generateSignedUrl(
+	filePath: string,
+	bucket: 'wardrobe-images' | 'improved-images',
+	supabase: SupabaseClient,
+	expiresIn: number = 3600
+): Promise<string | null> {
+	if (!filePath) return null;
+
+	let pathToSign = filePath;
+
+	// Handle legacy full public URLs - extract the path
+	if (filePath.startsWith('http://') || filePath.startsWith('https://')) {
+		// Format: https://xxx.supabase.co/storage/v1/object/public/{bucket}/{userId}/{filename}
+		const pathMatch = filePath.match(/\/storage\/v1\/object\/public\/[^/]+\/(.+)$/);
+		if (pathMatch) {
+			pathToSign = pathMatch[1]; // Extract: {userId}/{filename}
+		} else {
+			console.warn('Could not extract path from legacy URL:', filePath);
+			return filePath; // Can't parse, return as-is
+		}
+	}
+
+	const { data, error } = await supabase
 		.storage
 		.from(bucket)
-		.getPublicUrl(data.path);
+		.createSignedUrl(pathToSign, expiresIn);
 
-	return publicUrl;
+	if (error) {
+		console.error('Error generating signed URL:', error);
+		return null;
+	}
+
+	return data.signedUrl;
 }
 
 /**
@@ -284,8 +322,16 @@ async function fetchItemWithRelations(
 	const colors = colorRelations?.map(rel => (rel as any).colors).filter(Boolean) || [];
 	const occasions = occasionRelations?.map(rel => (rel as any).occasions).filter(Boolean) || [];
 
+	// Generate signed URLs for images (private storage)
+	const [signedImageUrl, signedImprovedImageUrl] = await Promise.all([
+		item.image_url ? generateSignedUrl(item.image_url, 'wardrobe-images', supabase) : null,
+		item.improved_image_url ? generateSignedUrl(item.improved_image_url, 'improved-images', supabase) : null
+	]);
+
 	return {
 		...item,
+		image_url: signedImageUrl || item.image_url,
+		improved_image_url: signedImprovedImageUrl || item.improved_image_url,
 		colors,
 		occasions
 	};
@@ -640,10 +686,26 @@ export async function listWardrobeItems(
 		);
 	}
 
+	// Generate signed URLs for images (private storage)
+	const itemsWithSignedUrls = await Promise.all(
+		filteredItems.map(async (item) => {
+			const [signedImageUrl, signedImprovedImageUrl] = await Promise.all([
+				item.image_url ? generateSignedUrl(item.image_url, 'wardrobe-images', supabase) : null,
+				item.improved_image_url ? generateSignedUrl(item.improved_image_url, 'improved-images', supabase) : null
+			]);
+
+			return {
+				...item,
+				image_url: signedImageUrl || item.image_url,
+				improved_image_url: signedImprovedImageUrl || item.improved_image_url
+			};
+		})
+	);
+
 	const totalPages = Math.ceil((count || 0) / limit);
 
 	return {
-		items: filteredItems,
+		items: itemsWithSignedUrls,
 		total: count || 0,
 		page,
 		limit,
