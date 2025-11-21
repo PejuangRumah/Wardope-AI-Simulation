@@ -2,6 +2,7 @@
 	import { createEventDispatcher, onMount } from 'svelte';
 	import { Upload, Loader2, X, Sparkles, ArrowRight, ArrowLeft, Save } from 'lucide-svelte';
 	import { removeBgAndConvertToBase64 } from '$lib/utils/background-remover';
+	import MultiSelect from './MultiSelect.svelte';
 	import type { WardrobePrompt, WardrobeMasterData } from '$lib/types/wardrobe';
 	import type { ItemAnalysis } from '$lib/types/item';
 
@@ -220,8 +221,8 @@
 
 	async function saveToWardrobe() {
 		// Validate required fields
-		if (!formData.category || !formData.subcategory || !formData.color || !formData.description) {
-			alert('Please fill in all required fields (category, subcategory, color, description)');
+		if (!formData.category || !formData.subcategory || formData.colors.length === 0 || !formData.description) {
+			alert('Please fill in all required fields (category, subcategory, at least one color, description)');
 			return;
 		}
 
@@ -238,10 +239,10 @@
 					description: formData.description,
 					category: formData.category,
 					subcategory: formData.subcategory,
-					color: formData.colors[0] || formData.color,
+					colors: formData.colors,
 					fit: formData.fit || undefined,
 					brand: formData.brand || undefined,
-					occasion: formData.occasions[0] || undefined,
+					occasions: formData.occasions.length > 0 ? formData.occasions : undefined,
 					analysisMetadata: analysisResult
 						? {
 								confidence: analysisResult.confidence,
@@ -565,17 +566,19 @@
 						</select>
 					</div>
 
-					<!-- Color -->
+					<!-- Colors (Multi-select) -->
 					<div>
-						<label class="block text-sm font-medium text-gray-700 mb-1">
-							Primary Color <span class="text-red-500">*</span>
-						</label>
-						<select bind:value={formData.color} class="w-full px-3 py-2 border rounded-lg" required>
-							<option value="">Select color...</option>
-							{#each masterData.colors as color}
-								<option value={color.name}>{color.name}</option>
-							{/each}
-						</select>
+						<MultiSelect
+							label="Colors"
+							required={true}
+							options={masterData.colors}
+							bind:selectedValues={formData.colors}
+							placeholder="Select colors..."
+							showColorDots={true}
+						/>
+						<p class="text-xs text-gray-500 mt-1">
+							Select all colors that appear in this item
+						</p>
 					</div>
 
 					<!-- Fit -->
@@ -598,6 +601,21 @@
 							placeholder="e.g., Nike, Adidas..."
 							class="w-full px-3 py-2 border rounded-lg"
 						/>
+					</div>
+
+					<!-- Occasions (Multi-select) -->
+					<div>
+						<MultiSelect
+							label="Occasions (Optional)"
+							required={false}
+							options={masterData.occasions}
+							bind:selectedValues={formData.occasions}
+							placeholder="Select occasions..."
+							showColorDots={false}
+						/>
+						<p class="text-xs text-gray-500 mt-1">
+							When would you wear this item?
+						</p>
 					</div>
 
 					<!-- Description -->
