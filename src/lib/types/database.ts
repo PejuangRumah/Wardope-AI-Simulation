@@ -5,8 +5,12 @@ export interface WardrobeItemDB {
 	description: string;
 	category: 'Top' | 'Bottom' | 'Footwear' | 'Outerwear' | 'Accessory';
 	subcategory: string;
-	// Note: color and occasion columns removed after migration
-	// Now accessed via wardrobe_item_colors and wardrobe_item_occasions junction tables
+	// Legacy fields (still in schema but deprecated - use junction tables instead)
+	color: string;
+	occasion?: string;
+	// Primary color/occasion data accessed via:
+	// - wardrobe_item_colors junction table
+	// - wardrobe_item_occasions junction table
 	fit?: string;
 	brand?: string;
 	image_url?: string;
