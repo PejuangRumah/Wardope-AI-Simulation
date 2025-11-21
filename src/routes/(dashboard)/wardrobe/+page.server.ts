@@ -1,9 +1,11 @@
 import type { PageServerLoad } from './$types';
+import { redirect } from '@sveltejs/kit';
 import { listWardrobeItems } from '$lib/services/wardrobe';
 
-export const load: PageServerLoad = async ({ locals: { supabase }, url, parent }) => {
-	// Get session from parent layout (already validated)
-	const { session } = await parent();
+export const load: PageServerLoad = async ({ locals: { supabase, getSession }, url }) => {
+	// Get session directly to avoid waiting for layout's master data queries
+	const session = await getSession();
+	if (!session) throw redirect(303, '/login');
 	const userId = session.user.id;
 
 	// Parse query params for filters
