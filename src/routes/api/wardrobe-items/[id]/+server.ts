@@ -80,6 +80,28 @@ export const PUT: RequestHandler = async ({ params, request, locals }) => {
 			}
 		}
 
+		// Validate colors if provided (now an array)
+		if (body.colors !== undefined) {
+			if (!Array.isArray(body.colors) || body.colors.length === 0) {
+				return json({ error: 'Colors must be a non-empty array' }, { status: 400 });
+			}
+
+			if (body.colors.some(color => !color || color.trim().length === 0)) {
+				return json({ error: 'All colors must be non-empty strings' }, { status: 400 });
+			}
+		}
+
+		// Validate occasions if provided (optional array)
+		if (body.occasions !== undefined) {
+			if (!Array.isArray(body.occasions)) {
+				return json({ error: 'Occasions must be an array' }, { status: 400 });
+			}
+
+			if (body.occasions.some(occasion => !occasion || occasion.trim().length === 0)) {
+				return json({ error: 'All occasions must be non-empty strings' }, { status: 400 });
+			}
+		}
+
 		// Update item
 		const item = await updateWardrobeItem(itemId, body, userId, locals.supabase);
 
