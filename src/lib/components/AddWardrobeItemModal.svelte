@@ -18,6 +18,7 @@
 	let fileInput: HTMLInputElement;
 	let uploadedFile: File | null = null;
 	let uploadedImagePreview: string | null = null;
+	let uploadedImageBase64: string | null = null; // Base64 for API submission
 
 	// Step 2: Background Removal
 	let isRemovingBg = false;
@@ -91,6 +92,16 @@
 		}
 	});
 
+	// Helper function to convert File to base64 data URI
+	function fileToBase64(file: File): Promise<string> {
+		return new Promise((resolve, reject) => {
+			const reader = new FileReader();
+			reader.onload = () => resolve(reader.result as string);
+			reader.onerror = reject;
+			reader.readAsDataURL(file);
+		});
+	}
+
 	async function handleFileSelect(event: Event) {
 		const input = event.target as HTMLInputElement;
 		const file = input.files?.[0];
@@ -110,6 +121,7 @@
 
 		uploadedFile = file;
 		uploadedImagePreview = URL.createObjectURL(file);
+		uploadedImageBase64 = await fileToBase64(file); // Convert to base64 for API
 
 		// Auto-proceed to background removal
 		await handleBackgroundRemoval();
@@ -171,10 +183,17 @@
 				formData.category = analysisResult.category;
 				formData.subcategory = analysisResult.subcategory;
 				formData.colors = analysisResult.colors;
-				formData.fit = analysisResult.fit;
+				// Find matching fit from masterData (case-insensitive)
+				const matchedFit = masterData.fits.find(
+					(f) => f.name.toLowerCase() === analysisResult.fit?.toLowerCase()
+				);
+				formData.fit = matchedFit?.name || '';
 				formData.occasions = analysisResult.occasions;
 				formData.description = analysisResult.description;
-				formData.brand = analysisResult.brand || '';
+				// Handle brand - check for actual null, undefined, or string "null"
+				formData.brand = (analysisResult.brand && analysisResult.brand !== 'null')
+					? analysisResult.brand
+					: '';
 			}
 
 			// Step 2: Glow Up (if enabled)
@@ -250,7 +269,7 @@
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({
-					originalImage: uploadedImagePreview,
+					originalImage: uploadedImageBase64,
 					improvedImage: improvedImageUrl || bgRemovedImage,
 					description: formData.description,
 					category: formData.category,
@@ -294,6 +313,7 @@
 	function resetUpload() {
 		uploadedFile = null;
 		uploadedImagePreview = null;
+		uploadedImageBase64 = null;
 		bgRemovedImage = null;
 		if (fileInput) {
 			fileInput.value = '';
@@ -453,6 +473,28 @@
 			{#if currentStep === 3}
 				<div class="space-y-6">
 					<h3 class="text-lg font-semibold">AI Enhancement Options</h3>
+
+					<!-- Image Preview: Original vs BG Removed -->
+					{#if bgRemovedImage}
+						<div class="grid grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg">
+							<div>
+								<p class="text-sm font-medium mb-2 text-gray-600">Original</p>
+								<img
+									src={uploadedImagePreview}
+									alt="Original"
+									class="border rounded w-full max-h-48 object-contain bg-white"
+								/>
+							</div>
+							<div>
+								<p class="text-sm font-medium mb-2 text-gray-600">Background Removed ✓</p>
+								<img
+									src={bgRemovedImage}
+									alt="BG Removed"
+									class="border rounded w-full max-h-48 object-contain bg-gray-100"
+								/>
+							</div>
+						</div>
+					{/if}
 
 					<!-- Auto-fill Analysis -->
 					<label class="flex items-start gap-3 p-4 border rounded-lg hover:bg-gray-50 cursor-pointer">
