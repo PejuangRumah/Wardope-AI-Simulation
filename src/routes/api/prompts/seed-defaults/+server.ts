@@ -45,7 +45,7 @@ export const POST: RequestHandler = async ({ locals: { supabase, getSession } })
 				user_id: userId,
 				name: 'Item Analysis (Default)',
 				description:
-					'Default system prompt for analyzing fashion items using GPT-4o Vision API. Extracts category, subcategory, colors, fit, occasions, and detailed description.',
+					'Default system prompt for analyzing fashion items using GPT 5.1 Nano. Extracts category, subcategory, colors, fit, occasions, and detailed description.',
 				type: 'item_analysis',
 				content: getDefaultAnalysisPrompt(),
 				template_variables: [],
@@ -84,7 +84,7 @@ export const POST: RequestHandler = async ({ locals: { supabase, getSession } })
 				user_id: userId,
 				name: 'Outfit Recommendation (Default)',
 				description:
-					'Default system prompt for generating outfit recommendations using GPT-4o. Creates 1-5 outfit combinations based on user occasion and preferences with color harmony and style guidelines.',
+					'Default system prompt for generating outfit recommendations using GPT 5.1 Nano. Creates 1-5 outfit combinations based on user occasion and preferences with color harmony and style guidelines.',
 				type: 'outfit_recommendation',
 				content: getDefaultPromptTemplate(),
 				template_variables: ['occasion', 'note'],
