@@ -14,7 +14,7 @@ export const load: LayoutServerLoad = async ({ locals: { getSession, supabase } 
 	const [categoriesRes, colorsRes, fitsRes, occasionsRes, subcategoriesRes] = await Promise.all([
 		supabase.from('categories').select('*').order('display_order'),
 		supabase.from('colors').select('*').order('display_order'),
-		supabase.from('fits').select('*').order('display_order'),
+		supabase.from('fits').select('id, name, category_id, display_order').order('display_order'),
 		supabase.from('occasions').select('*').order('display_order'),
 		supabase.from('subcategories').select('*, category:categories(id, name)').order('display_order')
 	]);
