@@ -77,7 +77,7 @@ export const POST: RequestHandler = async ({ request }) => {
     // 7. Semantic search + category balancing
     const { selectedItems } = semanticSearch(itemsWithEmbeddings, queryEmbedding);
 
-    // 8. Generate outfit combinations with GPT-4o
+    // 8. Generate outfit combinations with GPT 5.1 Nano
     const { combinations, promptTokens, completionTokens } = await generateOutfits(
       selectedItems,
       occasion,
