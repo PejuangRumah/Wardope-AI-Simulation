@@ -1,4 +1,4 @@
-// API Endpoint - Analyze fashion item image using Vision API
+// API Endpoint - Analyze fashion item image using GPT 5.1 Nano
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { analyzeItemImage, extractBase64FromDataUrl, isValidBase64Image } from '$lib/services/item-analyzer';
@@ -31,7 +31,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 			);
 		}
 
-		// 3. Analyze image using Vision API with optional prompt from database
+		// 3. Analyze image using GPT 5.1 Nano with optional prompt from database
 		const { analysis, promptTokens, completionTokens, promptUsed } = await analyzeItemImage(
 			imageBase64,
 			{
