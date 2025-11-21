@@ -5,13 +5,13 @@ import { analyzeItemImage, extractBase64FromDataUrl, isValidBase64Image } from '
 import { PRICING, USD_TO_IDR } from '$lib/services/openai';
 import type { AnalysisResponse } from '$lib/types/item';
 
-export const POST: RequestHandler = async ({ request }) => {
+export const POST: RequestHandler = async ({ request, locals }) => {
 	const startTime = Date.now();
 
 	try {
 		// 1. Parse request body
 		const body = await request.json();
-		const { image, customPrompt } = body;
+		const { image, customPrompt, promptId } = body;
 
 		// 2. Validate inputs
 		if (!image) {
@@ -31,10 +31,14 @@ export const POST: RequestHandler = async ({ request }) => {
 			);
 		}
 
-		// 3. Analyze image using Vision API
-		const { analysis, promptTokens, completionTokens } = await analyzeItemImage(
+		// 3. Analyze image using Vision API with optional prompt from database
+		const { analysis, promptTokens, completionTokens, promptUsed } = await analyzeItemImage(
 			imageBase64,
-			customPrompt
+			{
+				customPrompt,
+				promptId,
+				supabase: locals.supabase
+			}
 		);
 
 		// 4. Calculate costs
@@ -50,7 +54,7 @@ export const POST: RequestHandler = async ({ request }) => {
 
 
 		// 5. Return response
-		const response: AnalysisResponse = {
+		const response: AnalysisResponse & { promptUsed?: { id: string; name: string; version: number } } = {
 			analysis,
 			usage: {
 				prompt_tokens: promptTokens,
@@ -59,7 +63,8 @@ export const POST: RequestHandler = async ({ request }) => {
 				cost_usd: totalCostUsd,
 				cost_idr: totalCostIdr,
 				processing_time_ms: processingTime
-			}
+			},
+			promptUsed
 		};
 
 		return json(response, { status: 200 });

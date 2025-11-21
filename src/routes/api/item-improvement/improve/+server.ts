@@ -5,13 +5,13 @@ import { improveItemImage, estimateImageCost } from '$lib/services/item-improver
 import { USD_TO_IDR } from '$lib/services/openai';
 import type { ImprovementRequest, ImprovementResponse } from '$lib/types/item';
 
-export const POST: RequestHandler = async ({ request }) => {
+export const POST: RequestHandler = async ({ request, locals }) => {
 	const startTime = Date.now();
 
 	try {
 		// 1. Parse request body
-		const body: ImprovementRequest = await request.json();
-		const { itemData, originalImage, quality, customPrompt } = body;
+		const body: ImprovementRequest & { promptId?: string } = await request.json();
+		const { itemData, originalImage, quality, customPrompt, promptId } = body;
 
 		// 2. Validate inputs
 		if (!itemData) {
@@ -40,8 +40,12 @@ export const POST: RequestHandler = async ({ request }) => {
 			);
 		}
 
-		// 3. Generate improved image
-		const imageUrl = await improveItemImage(itemData, originalImage, quality, customPrompt);
+		// 3. Generate improved image with optional prompt from database
+		const { imageUrl, promptUsed } = await improveItemImage(itemData, originalImage, quality, {
+			customPrompt,
+			promptId,
+			supabase: locals.supabase
+		});
 
 		// 4. Calculate costs
 		const processingTime = Date.now() - startTime;
@@ -51,13 +55,14 @@ export const POST: RequestHandler = async ({ request }) => {
 
 
 		// 5. Return response
-		const response: ImprovementResponse = {
+		const response: ImprovementResponse & { promptUsed?: { id: string; name: string; version: number } } = {
 			imageUrl,
 			usage: {
 				cost_usd: costUsd,
 				cost_idr: costIdr,
 				processing_time_ms: processingTime
-			}
+			},
+			promptUsed
 		};
 
 		return json(response, { status: 200 });
