@@ -62,6 +62,14 @@
 			})
 		: [];
 
+	// Filtered fits based on selected category
+	$: filteredFits = formData.category
+		? masterData.fits.filter((f) => {
+				const category = masterData.categories.find((c) => c.name === formData.category);
+				return category && f.category_id === category.id;
+			})
+		: [];
+
 	// Cost estimation
 	$: totalEstimatedCost =
 		(enableAnalysis ? 450 : 0) +
@@ -670,9 +678,13 @@
 					<!-- Fit -->
 					<div>
 						<label class="block text-sm font-medium text-gray-700 mb-1">Fit (Optional)</label>
-						<select bind:value={formData.fit} class="w-full px-3 py-2 border rounded-lg">
+						<select
+							bind:value={formData.fit}
+							class="w-full px-3 py-2 border rounded-lg"
+							disabled={!formData.category}
+						>
 							<option value="">Select fit...</option>
-							{#each masterData.fits as fit}
+							{#each filteredFits as fit}
 								<option value={fit.name}>{fit.name}</option>
 							{/each}
 						</select>
