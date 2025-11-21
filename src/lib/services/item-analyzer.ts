@@ -1,4 +1,4 @@
-// Item Analyzer Service - Analyze fashion items using GPT Vision API
+// Item Analyzer Service - Analyze fashion items using GPT 5.1 Nano
 import { getOpenAIClientWithoutGuardrails } from './openai';
 import type { ItemAnalysis } from '$lib/types/item';
 import type { PromptInfo } from '$lib/types/wardrobe';
@@ -14,7 +14,7 @@ import {
 const ITEM_ANALYSIS_MODEL = 'gpt-4o-mini';
 
 /**
- * Analyze a fashion item image using GPT-4o Vision API
+ * Analyze a fashion item image using GPT 5.1 Nano
  * Returns structured data about the item (category, colors, fit, etc.)
  *
  * @param imageBase64 - Base64 encoded image string (without data:image prefix)
@@ -98,7 +98,7 @@ export async function analyzeItemImage(
 		finalPrompt = replacePromptVariables(systemPrompt, masterDataVariables);
 	}
 
-	// Call GPT Vision API with structured output
+	// Call GPT 5.1 Nano with structured output
 	const response = await openai.chat.completions.create({
 		model: ITEM_ANALYSIS_MODEL,
 		messages: [
