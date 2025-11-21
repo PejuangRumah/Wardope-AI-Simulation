@@ -90,8 +90,23 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 			return json({ error: 'Subcategory is required' }, { status: 400 });
 		}
 
-		if (!body.color || body.color.trim().length === 0) {
-			return json({ error: 'Color is required' }, { status: 400 });
+		// Validate colors (now an array)
+		if (!body.colors || !Array.isArray(body.colors) || body.colors.length === 0) {
+			return json({ error: 'At least one color is required' }, { status: 400 });
+		}
+
+		// Validate color strings are not empty
+		if (body.colors.some(color => !color || color.trim().length === 0)) {
+			return json({ error: 'All colors must be non-empty strings' }, { status: 400 });
+		}
+
+		// Validate occasions if provided (optional array)
+		if (body.occasions && !Array.isArray(body.occasions)) {
+			return json({ error: 'Occasions must be an array' }, { status: 400 });
+		}
+
+		if (body.occasions && body.occasions.some(occasion => !occasion || occasion.trim().length === 0)) {
+			return json({ error: 'All occasions must be non-empty strings' }, { status: 400 });
 		}
 
 		// Validate category values
