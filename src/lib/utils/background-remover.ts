@@ -10,15 +10,57 @@ export async function removeBgFromImage(
 	imageFile: File,
 	onProgress?: (progress: number) => void
 ): Promise<Blob> {
+	// Track progress per operation key to handle multiple phases
+	const progressByKey: Record<string, number> = {};
+	let lastReportedProgress = 0;
+
+	// Known operation phases and their weights (approximate)
+	const phaseWeights: Record<string, { weight: number; order: number }> = {
+		fetch: { weight: 10, order: 0 }, // Model fetching
+		compute: { weight: 80, order: 1 }, // Main computation
+		encode: { weight: 10, order: 2 } // Result encoding
+	};
+
 	try {
 		const blob = await removeBackground(imageFile, {
 			progress: (key, current, total) => {
-				const progressPercent = Math.round((current / total) * 100);
-				if (onProgress) {
-					onProgress(progressPercent);
+				if (!onProgress) return;
+
+				// Calculate progress for this specific phase
+				const phaseProgress = total > 0 ? (current / total) * 100 : 0;
+				progressByKey[key] = phaseProgress;
+
+				// Calculate weighted total progress
+				let totalProgress = 0;
+				let totalWeight = 0;
+
+				for (const [phaseKey, progress] of Object.entries(progressByKey)) {
+					// Find matching phase or use default weight
+					const matchedPhase = Object.entries(phaseWeights).find(([name]) =>
+						phaseKey.toLowerCase().includes(name)
+					);
+					const weight = matchedPhase ? matchedPhase[1].weight : 20;
+					totalProgress += (progress / 100) * weight;
+					totalWeight += weight;
+				}
+
+				// Normalize to 0-100 and ensure monotonic increase
+				const normalizedProgress = totalWeight > 0 ? (totalProgress / totalWeight) * 100 : 0;
+				const roundedProgress = Math.round(Math.min(normalizedProgress, 99)); // Cap at 99 until done
+
+				// Only report if progress increased (monotonic)
+				if (roundedProgress > lastReportedProgress) {
+					lastReportedProgress = roundedProgress;
+					onProgress(roundedProgress);
 				}
 			}
 		});
+
+		// Report 100% on completion
+		if (onProgress) {
+			onProgress(100);
+		}
+
 		return blob;
 	} catch (error) {
 		console.error('Background removal failed:', error);
