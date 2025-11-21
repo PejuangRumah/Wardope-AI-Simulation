@@ -161,31 +161,52 @@ export const IMAGE_SIZES = {
 
 /**
  * Default prompt for item analysis
+ * Uses variables: {categories}, {subcategories}, {colors}, {occasions}, {fits}
+ * Variables are replaced with actual master data from database before sending to API
  */
 export function getDefaultAnalysisPrompt(): string {
-	return `You are a professional fashion item analyzer for an e-commerce platform.
+	return `You are a professional fashion item analyzer for a wardrobe management platform.
 
-Analyze the uploaded fashion item image and extract:
+Analyze the uploaded fashion item image and extract the following information.
 
-1. **Category**: Identify the main category (fullbodies, tops, outerwears, bottoms, accessories, footwears)
-2. **Subcategory**: Identify the specific type (e.g., Shirt, Jeans, Sneaker)
-3. **Colors**: List all visible colors in the item (primary and secondary)
-4. **Fit**: Determine the fit style (oversized, regular, slim, etc.)
-5. **Occasions**: Suggest suitable occasions for wearing this item
-6. **Description**: Provide a detailed description including:
+## Available Data (MUST choose from these lists only)
+
+**Categories:** {categories}
+
+**Subcategories:** {subcategories}
+
+**Colors:** {colors}
+
+**Occasions:** {occasions}
+
+**Fits:** {fits}
+
+## Required Output
+
+1. **category**: Choose exactly ONE from the Categories list above
+2. **subcategory**: Choose exactly ONE from the Subcategories list above (must match the selected category)
+3. **colors**: Choose 1-3 colors from the Colors list above (array format, pick the most prominent colors)
+4. **fit**: Choose exactly ONE from the Fits list above
+5. **occasions**: Choose 1-5 occasions from the Occasions list above (array format, select all that apply)
+6. **description**: Provide a concise description (50-150 words) including:
    - Brand identification if visible
-   - Material estimation (cotton, denim, leather, etc.)
-   - Style characteristics (casual, formal, sporty, etc.)
+   - Material estimation (cotton, denim, leather, polyester, etc.)
+   - Style characteristics
    - Unique design features
-   - Overall aesthetic
+7. **brand**: Brand name if visible, otherwise null
+8. **confidence**: Your confidence level (low, medium, high)
 
-**IMPORTANT**: Only use values from the provided category, color, fit, and occasion lists.
-
-Be accurate, specific, and professional in your analysis.`;
+## Rules
+- You MUST select values exactly as written in the lists above
+- Do NOT invent new categories, colors, fits, or occasions
+- Colors array: minimum 1, maximum 3
+- Occasions array: minimum 1, maximum 5
+- Be accurate and specific in your analysis`;
 }
 
 /**
  * Default prompt for image improvement
+ * Creates professional e-commerce product photos
  */
 export function getDefaultImprovementPrompt(itemData: {
 	category: string;
@@ -193,18 +214,51 @@ export function getDefaultImprovementPrompt(itemData: {
 	colors: string[];
 	fit: string;
 }): string {
-	return `Professional e-commerce product photo
+	const colorList = itemData.colors?.join(', ') || 'original colors';
 
-Requirements:
-- Clean, white or light neutral background (studio-style)
-- Front-facing view, centered composition
-- Professional lighting with no harsh shadows
-- Remove any other objects, people, hangers, or distractions from the background
-- High-quality product photography style
-- Suitable for premium online fashion retail
-- Item should look pristine, well-pressed, and professionally presented
-- Sharp focus, high resolution appearance
-- IMPORTANT: Maintain the original design, colors, patterns, and shape of the clothing item
+	return `Transform this ${itemData.subcategory || 'fashion item'} into a professional e-commerce product photo.
 
-The result should look like a professional catalog photo from a premium fashion brand website or high-end e-commerce store.`;
+## Item Details
+- Category: ${itemData.category || 'Fashion Item'}
+- Type: ${itemData.subcategory || 'Clothing'}
+- Colors: ${colorList}
+- Fit: ${itemData.fit || 'Standard'}
+
+## Background Requirements
+- Pure white background (#FFFFFF) or very light neutral gray (#F5F5F5)
+- No gradients, patterns, or textures in background
+- Clean studio environment appearance
+
+## Lighting Requirements
+- Soft, diffused studio lighting from multiple angles
+- No harsh shadows on or behind the item
+- Even illumination across the entire garment
+- Subtle shadow beneath item for depth (soft, not sharp)
+
+## Composition Requirements
+- Item centered in frame with balanced margins
+- Front-facing view showing full garment
+- Maintain original aspect ratio and proportions
+- No cropping of any part of the item
+
+## Item Presentation
+- Remove all wrinkles, creases, and fold marks
+- Garment appears freshly pressed and pristine
+- Enhance fabric texture visibility without altering material
+- Preserve all original design elements (logos, patterns, prints, stitching)
+- Maintain accurate color representation (${colorList})
+
+## Technical Requirements
+- High resolution output (minimum 1024x1024)
+- Sharp focus on all details
+- No compression artifacts
+- Professional color grading suitable for e-commerce
+
+## Strict Rules
+- DO NOT change the garment's original colors, patterns, or design
+- DO NOT add accessories, people, mannequins, or hangers
+- DO NOT alter the style, cut, or silhouette of the item
+- Remove any background distractions, tags, or non-essential elements
+
+The final image should match the quality standards of premium fashion retailers like Zara, H&M, or Uniqlo product catalogs.`;
 }
