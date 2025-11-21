@@ -83,6 +83,76 @@ export async function blobToBase64(blob: Blob): Promise<string> {
 }
 
 /**
+ * Compress image blob to reduce file size for storage
+ * Uses canvas to resize and compress as JPEG
+ * @param blob - Image blob to compress
+ * @param maxWidth - Maximum width in pixels (default: 1200)
+ * @param quality - JPEG quality 0-1 (default: 0.85)
+ * @returns Compressed image blob as JPEG
+ */
+export async function compressImage(
+	blob: Blob,
+	maxWidth: number = 1200,
+	quality: number = 0.85
+): Promise<Blob> {
+	return new Promise((resolve, reject) => {
+		const img = new Image();
+		const url = URL.createObjectURL(blob);
+
+		img.onload = () => {
+			URL.revokeObjectURL(url);
+
+			// Calculate new dimensions maintaining aspect ratio
+			let width = img.width;
+			let height = img.height;
+
+			if (width > maxWidth) {
+				height = Math.round((height * maxWidth) / width);
+				width = maxWidth;
+			}
+
+			// Create canvas and draw resized image
+			const canvas = document.createElement('canvas');
+			canvas.width = width;
+			canvas.height = height;
+
+			const ctx = canvas.getContext('2d');
+			if (!ctx) {
+				reject(new Error('Failed to get canvas context'));
+				return;
+			}
+
+			// Fill with white background (for transparent PNGs converting to JPEG)
+			ctx.fillStyle = '#FFFFFF';
+			ctx.fillRect(0, 0, width, height);
+
+			// Draw the image
+			ctx.drawImage(img, 0, 0, width, height);
+
+			// Convert to JPEG blob with compression
+			canvas.toBlob(
+				(compressedBlob) => {
+					if (compressedBlob) {
+						resolve(compressedBlob);
+					} else {
+						reject(new Error('Failed to compress image'));
+					}
+				},
+				'image/jpeg',
+				quality
+			);
+		};
+
+		img.onerror = () => {
+			URL.revokeObjectURL(url);
+			reject(new Error('Failed to load image for compression'));
+		};
+
+		img.src = url;
+	});
+}
+
+/**
  * Remove background and convert to base64 in one step
  * @param imageFile - The image file to process
  * @param onProgress - Optional callback for progress updates
@@ -93,7 +163,9 @@ export async function removeBgAndConvertToBase64(
 	onProgress?: (progress: number) => void
 ): Promise<string> {
 	const blob = await removeBgFromImage(imageFile, onProgress);
-	return await blobToBase64(blob);
+	// Compress before converting to base64 to reduce file size
+	const compressedBlob = await compressImage(blob);
+	return await blobToBase64(compressedBlob);
 }
 
 /**
