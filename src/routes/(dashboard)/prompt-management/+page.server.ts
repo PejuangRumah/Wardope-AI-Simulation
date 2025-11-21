@@ -1,13 +1,8 @@
 import type { PageServerLoad } from './$types';
-import { redirect } from '@sveltejs/kit';
 
-export const load: PageServerLoad = async ({ locals: { supabase, getSession } }) => {
-	// Check authentication
-	const session = await getSession();
-	if (!session?.user) {
-		throw redirect(303, '/auth/login');
-	}
-
+export const load: PageServerLoad = async ({ locals: { supabase }, parent }) => {
+	// Get session from parent layout (already validated)
+	const { session } = await parent();
 	const userId = session.user.id;
 
 	// Load active prompts for each type (one per type)
