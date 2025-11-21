@@ -10,29 +10,29 @@ export const load: PageServerLoad = async ({ locals: { supabase, getSession } })
 
 	const userId = session.user.id;
 
-	// Load all prompts for this user
+	// Load active prompts for each type (one per type)
 	const { data: prompts, error: promptsError } = await supabase
 		.from('prompts')
 		.select('*')
 		.eq('user_id', userId)
-		.order('type', { ascending: true })
-		.order('is_active', { ascending: false }) // Active prompts first
-		.order('created_at', { ascending: false });
+		.eq('is_active', true); // Only active prompts
 
 	if (promptsError) {
 		console.error('Error loading prompts:', promptsError);
 	}
 
-	// Group prompts by type for easier rendering
-	const promptsByType = {
-		item_analysis: (prompts || []).filter((p) => p.type === 'item_analysis'),
-		item_improvement: (prompts || []).filter((p) => p.type === 'item_improvement'),
-		outfit_recommendation: (prompts || []).filter((p) => p.type === 'outfit_recommendation')
+	// Structure: One prompt per type (or null if not configured)
+	const promptsMap = {
+		item_analysis: (prompts || []).find((p) => p.type === 'item_analysis') || null,
+		item_improvement: (prompts || []).find((p) => p.type === 'item_improvement') || null,
+		outfit_recommendation:
+			(prompts || []).find((p) => p.type === 'outfit_recommendation') || null
 	};
 
+	const hasAnyPrompts = Object.values(promptsMap).some((p) => p !== null);
+
 	return {
-		prompts: prompts || [],
-		promptsByType,
-		hasPrompts: (prompts || []).length > 0
+		prompts: promptsMap,
+		hasPrompts: hasAnyPrompts
 	};
 };
