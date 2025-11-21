@@ -1,14 +1,9 @@
 import type { PageServerLoad } from './$types';
-import { redirect } from '@sveltejs/kit';
 import { listWardrobeItems } from '$lib/services/wardrobe';
 
-export const load: PageServerLoad = async ({ locals: { supabase, getSession }, url }) => {
-	// Check authentication
-	const session = await getSession();
-	if (!session?.user) {
-		throw redirect(303, '/auth/login');
-	}
-
+export const load: PageServerLoad = async ({ locals: { supabase }, url, parent }) => {
+	// Get session from parent layout (already validated)
+	const { session } = await parent();
 	const userId = session.user.id;
 
 	// Parse query params for filters
@@ -19,56 +14,36 @@ export const load: PageServerLoad = async ({ locals: { supabase, getSession }, u
 	const search = url.searchParams.get('search') || undefined;
 	const page = parseInt(url.searchParams.get('page') || '1');
 
-	// Load wardrobe items with filters
-	let wardrobeData;
-	try {
-		wardrobeData = await listWardrobeItems(
+	// Load wardrobe items and prompts in parallel
+	const [wardrobeData, promptsRes] = await Promise.all([
+		listWardrobeItems(
 			userId,
 			{ category, color, fit, occasion, search, page, limit: 20 },
 			supabase
-		);
-	} catch (error) {
-		console.error('Error loading wardrobe items:', error);
-		wardrobeData = {
-			items: [],
-			total: 0,
-			page: 1,
-			limit: 20,
-			totalPages: 0
-		};
-	}
-
-	// Load master data for filters and dropdowns
-	const [categories, colors, fits, occasions, subcategories] = await Promise.all([
-		supabase.from('categories').select('*').order('display_order'),
-		supabase.from('colors').select('*').order('display_order'),
-		supabase.from('fits').select('*').order('display_order'),
-		supabase.from('occasions').select('*').order('display_order'),
-		supabase.from('subcategories').select('*').order('category_id, display_order')
+		).catch((error) => {
+			console.error('Error loading wardrobe items:', error);
+			return { items: [], total: 0, page: 1, limit: 20, totalPages: 0 };
+		}),
+		supabase
+			.from('prompts')
+			.select('*')
+			.eq('user_id', userId)
+			.in('type', ['item_analysis', 'item_improvement'])
+			.order('type', { ascending: true })
+			.order('version', { ascending: false })
 	]);
 
-	// Load available prompts for item analysis and improvement
-	const { data: prompts } = await supabase
-		.from('prompts')
-		.select('*')
-		.eq('user_id', userId)
-		.in('type', ['item_analysis', 'item_improvement'])
-		.order('type', { ascending: true })
-		.order('version', { ascending: false });
+	// masterData is available from parent layout via $page.data.masterData
+	const prompts = promptsRes.data || [];
+	const hasPrompts = prompts.length > 0;
 
 	return {
 		items: wardrobeData.items,
 		total: wardrobeData.total,
 		page: wardrobeData.page,
 		totalPages: wardrobeData.totalPages,
-		masterData: {
-			categories: categories.data || [],
-			colors: colors.data || [],
-			fits: fits.data || [],
-			occasions: occasions.data || [],
-			subcategories: subcategories.data || []
-		},
-		prompts: prompts || [],
+		prompts,
+		hasPrompts,
 		filters: {
 			category,
 			color,
