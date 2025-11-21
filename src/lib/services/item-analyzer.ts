@@ -1,6 +1,8 @@
 // Item Analyzer Service - Analyze fashion items using GPT-4o Vision API
 import { getOpenAIClientWithoutGuardrails } from './openai';
 import type { ItemAnalysis } from '$lib/types/item';
+import type { PromptInfo } from '$lib/types/wardrobe';
+import type { SupabaseClient } from '@supabase/supabase-js';
 import {
 	getDefaultAnalysisPrompt,
 	getAllCategories,
@@ -15,22 +17,69 @@ import {
  * Returns structured data about the item (category, colors, fit, etc.)
  *
  * @param imageBase64 - Base64 encoded image string (without data:image prefix)
- * @param customPrompt - Optional custom prompt to override default
- * @returns Promise resolving to ItemAnalysis and token usage
+ * @param options - Optional configuration
+ * @param options.customPrompt - Custom prompt to override default
+ * @param options.promptId - ID of prompt to fetch from database
+ * @param options.supabase - Supabase client for fetching prompts
+ * @returns Promise resolving to ItemAnalysis, token usage, and prompt info
  */
 export async function analyzeItemImage(
 	imageBase64: string,
-	customPrompt?: string
+	options?: {
+		customPrompt?: string;
+		promptId?: string;
+		supabase?: SupabaseClient;
+	}
 ): Promise<{
 	analysis: ItemAnalysis;
 	promptTokens: number;
 	completionTokens: number;
+	promptUsed?: PromptInfo;
 }> {
 	// Get OpenAI client without guardrails (no user input to validate)
 	const openai = getOpenAIClientWithoutGuardrails();
 
-	// Prepare system prompt
-	const systemPrompt = customPrompt || getDefaultAnalysisPrompt();
+	// Prepare system prompt and prompt info
+	let systemPrompt = options?.customPrompt || getDefaultAnalysisPrompt();
+	let promptInfo: PromptInfo | undefined = undefined;
+
+	// Fetch prompt from database if supabase client provided
+	if (options?.supabase) {
+		if (options.promptId) {
+			// Fetch specific prompt by ID
+			const { data } = await options.supabase
+				.from('prompts')
+				.select('*')
+				.eq('id', options.promptId)
+				.single();
+
+			if (data) {
+				systemPrompt = data.content;
+				promptInfo = {
+					id: data.id,
+					name: data.name,
+					version: data.version
+				};
+			}
+		} else {
+			// Fetch active item_analysis prompt
+			const { data } = await options.supabase
+				.from('prompts')
+				.select('*')
+				.eq('type', 'item_analysis')
+				.eq('is_active', true)
+				.single();
+
+			if (data) {
+				systemPrompt = data.content;
+				promptInfo = {
+					id: data.id,
+					name: data.name,
+					version: data.version
+				};
+			}
+		}
+	}
 
 	// Add context about available options
 	const contextPrompt = `${systemPrompt}
@@ -155,7 +204,8 @@ IMPORTANT: Choose values ONLY from the lists above. Be specific and accurate.`;
 			confidence: result.confidence || 'medium'
 		},
 		promptTokens: response.usage?.prompt_tokens || 0,
-		completionTokens: response.usage?.completion_tokens || 0
+		completionTokens: response.usage?.completion_tokens || 0,
+		promptUsed: promptInfo
 	};
 }
 

@@ -2,6 +2,8 @@
 import { toFile } from 'openai';
 import { getOpenAIClientWithoutGuardrails } from './openai';
 import type { ItemAnalysis } from '$lib/types/item';
+import type { PromptInfo } from '$lib/types/wardrobe';
+import type { SupabaseClient } from '@supabase/supabase-js';
 import { getDefaultImprovementPrompt } from '$lib/constants/item-master';
 
 /**
@@ -11,20 +13,66 @@ import { getDefaultImprovementPrompt } from '$lib/constants/item-master';
  * @param itemData - Analysis data from Vision API
  * @param originalImage - Base64 data URI of the uploaded image
  * @param quality - Quality level (for cost estimation only; not used by API)
- * @param customPrompt - Optional custom prompt to override default
- * @returns Promise resolving to data URI (data:image/png;base64,...)
+ * @param options - Optional configuration
+ * @param options.customPrompt - Custom prompt to override default
+ * @param options.promptId - ID of prompt to fetch from database
+ * @param options.supabase - Supabase client for fetching prompts
+ * @returns Promise resolving to data URI and prompt info
  */
 export async function improveItemImage(
 	itemData: ItemAnalysis,
 	originalImage: string,
 	quality: 'low' | 'medium' | 'high' = 'medium',
-	customPrompt?: string
-): Promise<string> {
+	options?: {
+		customPrompt?: string;
+		promptId?: string;
+		supabase?: SupabaseClient;
+	}
+): Promise<{ imageUrl: string; promptUsed?: PromptInfo }> {
 	// Get OpenAI client without guardrails (no user input to validate)
 	const openai = getOpenAIClientWithoutGuardrails();
 
-	// Generate prompt
-	const prompt = customPrompt || getDefaultImprovementPrompt(itemData);
+	// Prepare prompt and prompt info
+	let prompt = options?.customPrompt || getDefaultImprovementPrompt(itemData);
+	let promptInfo: PromptInfo | undefined = undefined;
+
+	// Fetch prompt from database if supabase client provided
+	if (options?.supabase) {
+		if (options.promptId) {
+			// Fetch specific prompt by ID
+			const { data } = await options.supabase
+				.from('prompts')
+				.select('*')
+				.eq('id', options.promptId)
+				.single();
+
+			if (data) {
+				prompt = data.content;
+				promptInfo = {
+					id: data.id,
+					name: data.name,
+					version: data.version
+				};
+			}
+		} else {
+			// Fetch active item_improvement prompt
+			const { data } = await options.supabase
+				.from('prompts')
+				.select('*')
+				.eq('type', 'item_improvement')
+				.eq('is_active', true)
+				.single();
+
+			if (data) {
+				prompt = data.content;
+				promptInfo = {
+					id: data.id,
+					name: data.name,
+					version: data.version
+				};
+			}
+		}
+	}
 
 	// Convert base64 data URI to Buffer
 	const uploadedImageBase64 = originalImage.replace(/^data:image\/\w+;base64,/, '');
@@ -57,7 +105,10 @@ export async function improveItemImage(
 	// Convert base64 to data URI for use in <img> src
 	const dataUri = `data:image/png;base64,${base64Data}`;
 
-	return dataUri;
+	return {
+		imageUrl: dataUri,
+		promptUsed: promptInfo
+	};
 }
 
 /**
