@@ -910,7 +910,7 @@
 											Understanding the AI Recommendation Pipeline
 										</p>
 										<p class="text-xs text-gray-600">
-											This system uses OpenAI Guardrails for input validation, OpenAI's embeddings for semantic search, and GPT-4o to create intelligent outfit recommendations. The process takes 5-8 seconds and costs approximately Rp 150-200 per request.
+											This system uses OpenAI Guardrails for input validation, OpenAI's embeddings for semantic search, and GPT 5.1 Nano to create intelligent outfit recommendations. The process takes 5-8 seconds and costs approximately Rp 150-200 per request.
 										</p>
 									</div>
 								</div>
@@ -1090,7 +1090,7 @@
 									</div>
 								</div>
 
-								<!-- Step 5: GPT-4o Combination -->
+								<!-- Step 5: GPT 5.1 Nano Combination -->
 								<div class="border border-gray-200 rounded-lg p-3 bg-white">
 									<div class="flex items-start gap-3">
 										<div class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-bold">
@@ -1099,7 +1099,7 @@
 										<div class="flex-1">
 											<div class="flex items-center gap-2 mb-1">
 												<Sparkles class="w-4 h-4 text-gray-600" />
-												<h4 class="text-sm font-semibold text-gray-900">GPT-4o Outfit Generation</h4>
+												<h4 class="text-sm font-semibold text-gray-900">GPT 5.1 Nano Outfit Generation</h4>
 											</div>
 											<p class="text-xs text-gray-600 mb-2">
 												AI analyzes filtered items and creates 3-5 complete outfit combinations with reasoning. Uses structured output (JSON Schema) for consistent results.
@@ -1188,7 +1188,7 @@
 									<div class="text-xs text-gray-700">
 										<p class="font-semibold mb-1">Why This Approach?</p>
 										<p class="text-gray-600 mb-2">
-											<strong>Guardrails</strong> protect against malicious inputs before processing begins, ensuring system integrity. <strong>Semantic search</strong> ensures AI only considers the most relevant items (reducing cost by 80%+), while <strong>GPT-4o's fashion expertise</strong> creates stylistically coherent combinations with detailed reasoning. Embeddings are cached to avoid repeated API calls for the same wardrobe.
+											<strong>Guardrails</strong> protect against malicious inputs before processing begins, ensuring system integrity. <strong>Semantic search</strong> ensures AI only considers the most relevant items (reducing cost by 80%+), while <strong>GPT 5.1 Nano</strong> creates stylistically coherent combinations with detailed reasoning. Embeddings are cached to avoid repeated API calls for the same wardrobe.
 										</p>
 										<p class="text-gray-600">
 											This multi-layered approach balances security, cost-efficiency, and quality to deliver safe, intelligent outfit recommendations.
