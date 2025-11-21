@@ -52,24 +52,44 @@
 </svelte:head>
 
 <div class="p-8">
-	<!-- Page Header -->
-	<div class="mb-8">
-		<div class="flex items-center justify-between">
-			<div>
-				<h1 class="text-2xl font-bold text-gray-900">My Wardrobe</h1>
-				<p class="text-gray-600 mt-1">
-					{data.total} {data.total === 1 ? 'item' : 'items'} in your collection
+	{#if !data.hasPrompts}
+		<!-- Setup Required CTA -->
+		<div class="flex flex-col items-center justify-center min-h-[60vh]">
+			<div class="text-center max-w-md">
+				<div class="w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-6">
+					<Shirt class="w-8 h-8 text-indigo-600" />
+				</div>
+				<h2 class="text-xl font-semibold text-gray-900 mb-2">Setup Required</h2>
+				<p class="text-gray-600 mb-6">
+					You need to configure AI prompts before using the wardrobe features. This only takes a moment.
 				</p>
+				<a
+					href="/prompt-management"
+					class="inline-flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium"
+				>
+					Go to Prompt Management
+				</a>
 			</div>
-			<button
-				on:click={() => (showAddModal = true)}
-				class="px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors flex items-center gap-2 font-medium shadow-md"
-			>
-				<Plus class="w-5 h-5" />
-				Add Item
-			</button>
 		</div>
-	</div>
+	{:else}
+		<!-- Page Header -->
+		<div class="mb-8">
+			<div class="flex items-center justify-between">
+				<div>
+					<h1 class="text-2xl font-bold text-gray-900">My Wardrobe</h1>
+					<p class="text-gray-600 mt-1">
+						{data.total} {data.total === 1 ? 'item' : 'items'} in your collection
+					</p>
+				</div>
+				<button
+					on:click={() => (showAddModal = true)}
+					class="px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors flex items-center gap-2 font-medium shadow-md"
+				>
+					<Plus class="w-5 h-5" />
+					Add Item
+				</button>
+			</div>
+		</div>
 
 	<!-- Search & Filters -->
 	<div class="mb-6 bg-white rounded-lg border border-gray-200 p-4">
@@ -256,6 +276,7 @@
 				{/if}
 			</div>
 		</div>
+	{/if}
 	{/if}
 </div>
 
