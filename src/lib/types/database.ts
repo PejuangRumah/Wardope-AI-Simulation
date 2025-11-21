@@ -5,10 +5,10 @@ export interface WardrobeItemDB {
 	description: string;
 	category: 'Top' | 'Bottom' | 'Footwear' | 'Outerwear' | 'Accessory';
 	subcategory: string;
-	color: string;
+	// Note: color and occasion columns removed after migration
+	// Now accessed via wardrobe_item_colors and wardrobe_item_occasions junction tables
 	fit?: string;
 	brand?: string;
-	occasion?: string;
 	image_url?: string;
 	improved_image_url?: string;
 	metadata?: Record<string, any>;
@@ -16,6 +16,22 @@ export interface WardrobeItemDB {
 	analysis_metadata?: any;
 	created_at: string;
 	updated_at: string;
+}
+
+// Junction table for wardrobe item colors (many-to-many)
+export interface WardrobeItemColorDB {
+	id: string;
+	wardrobe_item_id: string;
+	color_id: string;
+	created_at: string;
+}
+
+// Junction table for wardrobe item occasions (many-to-many)
+export interface WardrobeItemOccasionDB {
+	id: string;
+	wardrobe_item_id: string;
+	occasion_id: string;
+	created_at: string;
 }
 
 export interface ItemEmbeddingDB {
