@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { Trash2, Edit } from 'lucide-svelte';
-	import type { WardrobeItemDB } from '$lib/types/database';
+	import type { WardrobeItem } from '$lib/types/wardrobe';
 
-	export let item: WardrobeItemDB;
+	export let item: WardrobeItem;
 
 	async function handleDelete() {
 		if (!confirm(`Delete ${item.subcategory}? This action cannot be undone.`)) {
@@ -53,7 +53,40 @@
 	<!-- Info -->
 	<div class="p-3">
 		<h3 class="font-semibold text-gray-900 truncate">{item.subcategory}</h3>
-		<p class="text-sm text-gray-600 truncate">{item.color}</p>
+
+		<!-- Colors -->
+		{#if item.colors && item.colors.length > 0}
+			<div class="flex items-center gap-1 mt-1 flex-wrap">
+				{#each item.colors.slice(0, 2) as color}
+					<div class="flex items-center gap-1 text-xs px-2 py-0.5 bg-gray-100 text-gray-700 rounded">
+						{#if color.hex_code}
+							<span
+								class="inline-block w-2.5 h-2.5 rounded-full border border-gray-300"
+								style="background-color: {color.hex_code};"
+							></span>
+						{/if}
+						<span>{color.name}</span>
+					</div>
+				{/each}
+				{#if item.colors.length > 2}
+					<span class="text-xs text-gray-500">+{item.colors.length - 2} more</span>
+				{/if}
+			</div>
+		{/if}
+
+		<!-- Occasions -->
+		{#if item.occasions && item.occasions.length > 0}
+			<div class="flex items-center gap-1 mt-1 flex-wrap">
+				{#each item.occasions.slice(0, 2) as occasion}
+					<span class="text-xs px-2 py-0.5 bg-purple-50 text-purple-700 rounded">
+						{occasion.name}
+					</span>
+				{/each}
+				{#if item.occasions.length > 2}
+					<span class="text-xs text-gray-500">+{item.occasions.length - 2} more</span>
+				{/if}
+			</div>
+		{/if}
 
 		{#if item.brand}
 			<p class="text-xs text-gray-500 truncate mt-1">{item.brand}</p>
