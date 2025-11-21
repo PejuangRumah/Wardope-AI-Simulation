@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { page } from '$app/stores';
-	import { Shirt, Sparkles, Image, Database, ChevronDown, ChevronRight, Menu, FileText } from 'lucide-svelte';
+	import { Shirt, Sparkles, Database, ChevronDown, ChevronRight, Menu, FileText } from 'lucide-svelte';
 	import { sidebarCollapsed } from '$lib/stores/sidebar';
 
 	let masterDataExpanded = false;
@@ -77,25 +77,6 @@
 			<Sparkles class="w-5 h-5 flex-shrink-0" />
 			{#if !$sidebarCollapsed}
 				<span>Outfit Recommendation</span>
-			{/if}
-		</a>
-
-		<!-- Item Improvement -->
-		<a
-			href="/item-improvement"
-			class="flex items-center gap-3 py-2.5 rounded-lg text-sm font-medium transition-colors"
-			class:px-4={!$sidebarCollapsed}
-			class:px-2={$sidebarCollapsed}
-			class:justify-center={$sidebarCollapsed}
-			class:bg-indigo-50={isActive('/item-improvement')}
-			class:text-indigo-700={isActive('/item-improvement')}
-			class:text-gray-700={!isActive('/item-improvement')}
-			class:hover:bg-gray-100={!isActive('/item-improvement')}
-			title={$sidebarCollapsed ? 'Item Improvement' : ''}
-		>
-			<Image class="w-5 h-5 flex-shrink-0" />
-			{#if !$sidebarCollapsed}
-				<span>Item Improvement</span>
 			{/if}
 		</a>
 
