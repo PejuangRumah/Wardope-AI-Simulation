@@ -25,7 +25,7 @@
 	let bgRemovedImage: string | null = null;
 
 	// Step 3: AI Options
-	let enableAnalysis = false;
+	let enableAnalysis = true; // Enable by default for faster flow
 	let enableGlowUp = false;
 	let glowUpQuality: 'low' | 'medium' | 'high' = 'medium';
 	let selectedAnalysisPromptId: string | undefined;
@@ -36,6 +36,7 @@
 	// Analysis results
 	let analysisResult: ItemAnalysis | null = null;
 	let improvedImageUrl: string | null = null;
+	let autoSaveAttempted = false; // Track if we tried auto-save
 
 	// Step 4: Form
 	let formData = {
@@ -208,7 +209,18 @@
 				improvedImageUrl = data.imageUrl;
 			}
 
-			// Move to form step
+			// Check if auto-save is possible (all fields filled with good confidence)
+			if (canAutoSave() && !autoSaveAttempted) {
+				autoSaveAttempted = true;
+				processingStep = 'Auto-saving to wardrobe...';
+				const saved = await saveToWardrobe(true);
+				if (saved) {
+					return; // Success - modal will close via dispatch
+				}
+				// Auto-save failed, fall through to form step
+			}
+
+			// Move to form step if auto-save not possible or failed
 			currentStep = 4;
 		} catch (error) {
 			console.error('AI processing error:', error);
@@ -219,14 +231,18 @@
 		}
 	}
 
-	async function saveToWardrobe() {
+	async function saveToWardrobe(isAutoSave = false): Promise<boolean> {
 		// Validate required fields
 		if (!formData.category || !formData.subcategory || formData.colors.length === 0 || !formData.description) {
-			alert('Please fill in all required fields (category, subcategory, at least one color, description)');
-			return;
+			if (!isAutoSave) {
+				alert('Please fill in all required fields (category, subcategory, at least one color, description)');
+			}
+			return false;
 		}
 
-		isProcessing = true;
+		if (!isAutoSave) {
+			isProcessing = true;
+		}
 		processingStep = 'Saving to wardrobe...';
 
 		try {
@@ -260,12 +276,18 @@
 
 			// Success!
 			dispatch('success');
+			return true;
 		} catch (error) {
 			console.error('Save error:', error);
-			alert(`Failed to save item: ${error instanceof Error ? error.message : 'Unknown error'}`);
+			if (!isAutoSave) {
+				alert(`Failed to save item: ${error instanceof Error ? error.message : 'Unknown error'}`);
+			}
+			return false;
 		} finally {
-			isProcessing = false;
-			processingStep = '';
+			if (!isAutoSave) {
+				isProcessing = false;
+				processingStep = '';
+			}
 		}
 	}
 
@@ -284,6 +306,25 @@
 
 	// Computed: formData.color - primary color from colors array or manual entry
 	$: formData.color = formData.colors.length > 0 ? formData.colors[0] : '';
+
+	// Check if form data is complete for auto-save
+	function isFormDataComplete(): boolean {
+		return !!(
+			formData.category &&
+			formData.subcategory &&
+			formData.colors.length > 0 &&
+			formData.description &&
+			formData.description.length >= 10
+		);
+	}
+
+	// Check if auto-save conditions are met
+	function canAutoSave(): boolean {
+		if (!analysisResult) return false;
+		// Auto-save if all required fields are filled and confidence is medium or high
+		const hasGoodConfidence = analysisResult.confidence === 'medium' || analysisResult.confidence === 'high';
+		return isFormDataComplete() && hasGoodConfidence;
+	}
 </script>
 
 <!-- Modal Overlay -->
@@ -642,7 +683,7 @@
 							Back
 						</button>
 						<button
-							on:click={saveToWardrobe}
+							on:click={() => saveToWardrobe(false)}
 							disabled={isProcessing}
 							class="flex-1 bg-green-600 text-white font-semibold py-3 px-4 rounded-lg hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
 						>
