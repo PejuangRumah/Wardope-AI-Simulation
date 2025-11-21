@@ -179,21 +179,24 @@
 				const data = await response.json();
 				analysisResult = data.analysis;
 
-				// Auto-fill form
-				formData.category = analysisResult.category;
-				formData.subcategory = analysisResult.subcategory;
-				formData.colors = analysisResult.colors;
-				// Find matching fit from masterData (case-insensitive)
-				const matchedFit = masterData.fits.find(
-					(f) => f.name.toLowerCase() === analysisResult.fit?.toLowerCase()
-				);
-				formData.fit = matchedFit?.name || '';
-				formData.occasions = analysisResult.occasions;
-				formData.description = analysisResult.description;
-				// Handle brand - check for actual null, undefined, or string "null"
-				formData.brand = (analysisResult.brand && analysisResult.brand !== 'null')
-					? analysisResult.brand
-					: '';
+				// Auto-fill form from analysis result
+				if (analysisResult) {
+					formData.category = analysisResult.category;
+					formData.subcategory = analysisResult.subcategory;
+					formData.colors = analysisResult.colors;
+					// Find matching fit from masterData (case-insensitive)
+					const fitFromAI = analysisResult.fit?.toLowerCase() || '';
+					const matchedFit = masterData.fits.find(
+						(f) => f.name.toLowerCase() === fitFromAI
+					);
+					formData.fit = matchedFit?.name || '';
+					formData.occasions = analysisResult.occasions;
+					formData.description = analysisResult.description;
+					// Handle brand - check for actual null, undefined, or string "null"
+					formData.brand = (analysisResult.brand && analysisResult.brand !== 'null')
+						? analysisResult.brand
+						: '';
+				}
 			}
 
 			// Step 2: Glow Up (if enabled)
