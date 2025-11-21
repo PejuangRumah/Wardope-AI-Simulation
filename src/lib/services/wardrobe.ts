@@ -1,7 +1,7 @@
 // Wardrobe Service - Handle CRUD operations for wardrobe items
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { WardrobeItemDB } from '$lib/types/database';
-import type { WardrobeItemCreate, WardrobeItemUpdate, WardrobeFilters, WardrobeListResponse } from '$lib/types/wardrobe';
+import type { WardrobeItemCreate, WardrobeItemUpdate, WardrobeFilters, WardrobeListResponse, WardrobeItem } from '$lib/types/wardrobe';
 
 /**
  * Upload a base64 image to Supabase Storage
@@ -97,6 +97,201 @@ export async function deleteImageFromStorage(
 }
 
 /**
+ * Find or create color records by name
+ * @param colorNames - Array of color names
+ * @param supabase - Supabase client
+ * @returns Array of color IDs
+ */
+async function findOrCreateColors(
+	colorNames: string[],
+	supabase: SupabaseClient
+): Promise<string[]> {
+	if (!colorNames || colorNames.length === 0) return [];
+
+	const colorIds: string[] = [];
+
+	for (const colorName of colorNames) {
+		// Try to find existing color (case-insensitive)
+		const { data: existingColor } = await supabase
+			.from('colors')
+			.select('id')
+			.ilike('name', colorName)
+			.single();
+
+		if (existingColor) {
+			colorIds.push(existingColor.id);
+		} else {
+			// Create new color
+			const { data: newColor, error } = await supabase
+				.from('colors')
+				.insert({ name: colorName })
+				.select('id')
+				.single();
+
+			if (error) {
+				console.error('Error creating color:', error);
+				continue; // Skip this color if creation fails
+			}
+
+			if (newColor) {
+				colorIds.push(newColor.id);
+			}
+		}
+	}
+
+	return colorIds;
+}
+
+/**
+ * Find or create occasion records by name
+ * @param occasionNames - Array of occasion names
+ * @param supabase - Supabase client
+ * @returns Array of occasion IDs
+ */
+async function findOrCreateOccasions(
+	occasionNames: string[],
+	supabase: SupabaseClient
+): Promise<string[]> {
+	if (!occasionNames || occasionNames.length === 0) return [];
+
+	const occasionIds: string[] = [];
+
+	for (const occasionName of occasionNames) {
+		// Try to find existing occasion (case-insensitive)
+		const { data: existingOccasion } = await supabase
+			.from('occasions')
+			.select('id')
+			.ilike('name', occasionName)
+			.single();
+
+		if (existingOccasion) {
+			occasionIds.push(existingOccasion.id);
+		} else {
+			// Create new occasion
+			const { data: newOccasion, error } = await supabase
+				.from('occasions')
+				.insert({ name: occasionName })
+				.select('id')
+				.single();
+
+			if (error) {
+				console.error('Error creating occasion:', error);
+				continue; // Skip this occasion if creation fails
+			}
+
+			if (newOccasion) {
+				occasionIds.push(newOccasion.id);
+			}
+		}
+	}
+
+	return occasionIds;
+}
+
+/**
+ * Link colors to a wardrobe item via junction table
+ * @param wardrobeItemId - Wardrobe item ID
+ * @param colorIds - Array of color IDs
+ * @param supabase - Supabase client
+ */
+async function linkColorsToItem(
+	wardrobeItemId: string,
+	colorIds: string[],
+	supabase: SupabaseClient
+): Promise<void> {
+	if (!colorIds || colorIds.length === 0) return;
+
+	const records = colorIds.map(colorId => ({
+		wardrobe_item_id: wardrobeItemId,
+		color_id: colorId
+	}));
+
+	const { error } = await supabase
+		.from('wardrobe_item_colors')
+		.insert(records);
+
+	if (error) {
+		console.error('Error linking colors to item:', error);
+		throw new Error(`Failed to link colors: ${error.message}`);
+	}
+}
+
+/**
+ * Link occasions to a wardrobe item via junction table
+ * @param wardrobeItemId - Wardrobe item ID
+ * @param occasionIds - Array of occasion IDs
+ * @param supabase - Supabase client
+ */
+async function linkOccasionsToItem(
+	wardrobeItemId: string,
+	occasionIds: string[],
+	supabase: SupabaseClient
+): Promise<void> {
+	if (!occasionIds || occasionIds.length === 0) return;
+
+	const records = occasionIds.map(occasionId => ({
+		wardrobe_item_id: wardrobeItemId,
+		occasion_id: occasionId
+	}));
+
+	const { error } = await supabase
+		.from('wardrobe_item_occasions')
+		.insert(records);
+
+	if (error) {
+		console.error('Error linking occasions to item:', error);
+		throw new Error(`Failed to link occasions: ${error.message}`);
+	}
+}
+
+/**
+ * Fetch wardrobe item with joined colors and occasions
+ * @param itemId - Wardrobe item ID
+ * @param userId - User ID for verification
+ * @param supabase - Supabase client
+ * @returns Wardrobe item with colors and occasions arrays
+ */
+async function fetchItemWithRelations(
+	itemId: string,
+	userId: string,
+	supabase: SupabaseClient
+): Promise<WardrobeItem> {
+	// Fetch base item
+	const { data: item, error: itemError } = await supabase
+		.from('wardrobe_items')
+		.select('*')
+		.eq('id', itemId)
+		.eq('user_id', userId)
+		.single();
+
+	if (itemError || !item) {
+		throw new Error('Wardrobe item not found or access denied');
+	}
+
+	// Fetch colors via junction table
+	const { data: colorRelations } = await supabase
+		.from('wardrobe_item_colors')
+		.select('color_id, colors(id, name, hex_code)')
+		.eq('wardrobe_item_id', itemId);
+
+	// Fetch occasions via junction table
+	const { data: occasionRelations } = await supabase
+		.from('wardrobe_item_occasions')
+		.select('occasion_id, occasions(id, name, description)')
+		.eq('wardrobe_item_id', itemId);
+
+	// Map to proper format
+	const colors = colorRelations?.map(rel => (rel as any).colors).filter(Boolean) || [];
+	const occasions = occasionRelations?.map(rel => (rel as any).occasions).filter(Boolean) || [];
+
+	return {
+		...item,
+		colors,
+		occasions
+	};
+}
+
+/**
  * Create a new wardrobe item
  * @param data - Wardrobe item creation data
  * @param userId - User ID
@@ -107,7 +302,7 @@ export async function createWardrobeItem(
 	data: WardrobeItemCreate,
 	userId: string,
 	supabase: SupabaseClient
-): Promise<WardrobeItemDB> {
+): Promise<WardrobeItem> {
 	// Upload images to storage
 	const imageUrl = await uploadImageToStorage(
 		data.originalImage,
@@ -126,7 +321,11 @@ export async function createWardrobeItem(
 		);
 	}
 
-	// Insert into database
+	// Find or create colors and occasions
+	const colorIds = await findOrCreateColors(data.colors, supabase);
+	const occasionIds = data.occasions ? await findOrCreateOccasions(data.occasions, supabase) : [];
+
+	// Insert into database (without color and occasion columns)
 	const { data: item, error } = await supabase
 		.from('wardrobe_items')
 		.insert({
@@ -134,10 +333,8 @@ export async function createWardrobeItem(
 			description: data.description,
 			category: data.category,
 			subcategory: data.subcategory,
-			color: data.color,
 			fit: data.fit,
 			brand: data.brand,
-			occasion: data.occasion,
 			image_url: imageUrl,
 			improved_image_url: improvedImageUrl,
 			analysis_confidence: data.analysisMetadata?.confidence ?
@@ -157,7 +354,22 @@ export async function createWardrobeItem(
 		throw new Error(`Failed to create wardrobe item: ${error.message}`);
 	}
 
-	return item;
+	// Link colors and occasions via junction tables
+	try {
+		await linkColorsToItem(item.id, colorIds, supabase);
+		await linkOccasionsToItem(item.id, occasionIds, supabase);
+	} catch (junctionError) {
+		// If junction table linking fails, delete the item and clean up images
+		await supabase.from('wardrobe_items').delete().eq('id', item.id);
+		await deleteImageFromStorage(imageUrl, supabase);
+		if (improvedImageUrl) {
+			await deleteImageFromStorage(improvedImageUrl, supabase);
+		}
+		throw junctionError;
+	}
+
+	// Fetch and return item with relations
+	return await fetchItemWithRelations(item.id, userId, supabase);
 }
 
 /**
@@ -173,7 +385,7 @@ export async function updateWardrobeItem(
 	data: WardrobeItemUpdate,
 	userId: string,
 	supabase: SupabaseClient
-): Promise<WardrobeItemDB> {
+): Promise<WardrobeItem> {
 	// Fetch existing item to verify ownership and get current image URLs
 	const { data: existingItem, error: fetchError } = await supabase
 		.from('wardrobe_items')
@@ -218,17 +430,41 @@ export async function updateWardrobeItem(
 		}
 	}
 
-	// Update database
+	// Update colors if provided
+	if (data.colors) {
+		// Delete existing color links
+		await supabase
+			.from('wardrobe_item_colors')
+			.delete()
+			.eq('wardrobe_item_id', id);
+
+		// Create new color links
+		const colorIds = await findOrCreateColors(data.colors, supabase);
+		await linkColorsToItem(id, colorIds, supabase);
+	}
+
+	// Update occasions if provided
+	if (data.occasions) {
+		// Delete existing occasion links
+		await supabase
+			.from('wardrobe_item_occasions')
+			.delete()
+			.eq('wardrobe_item_id', id);
+
+		// Create new occasion links
+		const occasionIds = await findOrCreateOccasions(data.occasions, supabase);
+		await linkOccasionsToItem(id, occasionIds, supabase);
+	}
+
+	// Update database (without color and occasion columns)
 	const { data: item, error } = await supabase
 		.from('wardrobe_items')
 		.update({
 			description: data.description,
 			category: data.category,
 			subcategory: data.subcategory,
-			color: data.color,
 			fit: data.fit,
 			brand: data.brand,
-			occasion: data.occasion,
 			image_url: newImageUrl,
 			improved_image_url: newImprovedImageUrl,
 			analysis_metadata: data.analysisMetadata,
@@ -243,7 +479,8 @@ export async function updateWardrobeItem(
 		throw new Error(`Failed to update wardrobe item: ${error.message}`);
 	}
 
-	return item;
+	// Fetch and return item with relations
+	return await fetchItemWithRelations(id, userId, supabase);
 }
 
 /**
@@ -311,7 +548,7 @@ export async function listWardrobeItems(
 		limit = 20
 	} = filters;
 
-	// Build query
+	// Build base query
 	let query = supabase
 		.from('wardrobe_items')
 		.select('*', { count: 'exact' })
@@ -321,14 +558,8 @@ export async function listWardrobeItems(
 	if (category) {
 		query = query.eq('category', category);
 	}
-	if (color) {
-		query = query.eq('color', color);
-	}
 	if (fit) {
 		query = query.eq('fit', fit);
-	}
-	if (occasion) {
-		query = query.eq('occasion', occasion);
 	}
 	if (search) {
 		// Full-text search on description and brand
@@ -344,16 +575,75 @@ export async function listWardrobeItems(
 	query = query.order('created_at', { ascending: false });
 
 	// Execute query
-	const { data: items, error, count } = await query;
+	const { data: baseItems, error, count } = await query;
 
 	if (error) {
 		throw new Error(`Failed to fetch wardrobe items: ${error.message}`);
 	}
 
+	if (!baseItems || baseItems.length === 0) {
+		return {
+			items: [],
+			total: count || 0,
+			page,
+			limit,
+			totalPages: 0
+		};
+	}
+
+	// Fetch colors and occasions for all items in batch
+	const itemIds = baseItems.map(item => item.id);
+
+	// Fetch colors
+	const { data: colorRelations } = await supabase
+		.from('wardrobe_item_colors')
+		.select('wardrobe_item_id, colors(id, name, hex_code)')
+		.in('wardrobe_item_id', itemIds);
+
+	// Fetch occasions
+	const { data: occasionRelations } = await supabase
+		.from('wardrobe_item_occasions')
+		.select('wardrobe_item_id, occasions(id, name, description)')
+		.in('wardrobe_item_id', itemIds);
+
+	// Map colors and occasions to items
+	const itemsWithRelations: WardrobeItem[] = baseItems.map(item => {
+		const itemColors = colorRelations
+			?.filter(rel => rel.wardrobe_item_id === item.id)
+			.map(rel => (rel as any).colors)
+			.filter(Boolean) || [];
+
+		const itemOccasions = occasionRelations
+			?.filter(rel => rel.wardrobe_item_id === item.id)
+			.map(rel => (rel as any).occasions)
+			.filter(Boolean) || [];
+
+		return {
+			...item,
+			colors: itemColors,
+			occasions: itemOccasions
+		};
+	});
+
+	// Apply color filter if provided
+	let filteredItems = itemsWithRelations;
+	if (color) {
+		filteredItems = itemsWithRelations.filter(item =>
+			item.colors.some(c => c.name.toLowerCase() === color.toLowerCase())
+		);
+	}
+
+	// Apply occasion filter if provided
+	if (occasion) {
+		filteredItems = filteredItems.filter(item =>
+			item.occasions.some(o => o.name.toLowerCase() === occasion.toLowerCase())
+		);
+	}
+
 	const totalPages = Math.ceil((count || 0) / limit);
 
 	return {
-		items: items || [],
+		items: filteredItems,
 		total: count || 0,
 		page,
 		limit,
@@ -366,23 +656,12 @@ export async function listWardrobeItems(
  * @param id - Wardrobe item ID
  * @param userId - User ID (for verification)
  * @param supabase - Supabase client
- * @returns Wardrobe item
+ * @returns Wardrobe item with colors and occasions
  */
 export async function getWardrobeItem(
 	id: string,
 	userId: string,
 	supabase: SupabaseClient
-): Promise<WardrobeItemDB> {
-	const { data: item, error } = await supabase
-		.from('wardrobe_items')
-		.select('*')
-		.eq('id', id)
-		.eq('user_id', userId)
-		.single();
-
-	if (error || !item) {
-		throw new Error('Wardrobe item not found or access denied');
-	}
-
-	return item;
+): Promise<WardrobeItem> {
+	return await fetchItemWithRelations(id, userId, supabase);
 }
