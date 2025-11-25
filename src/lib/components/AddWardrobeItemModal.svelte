@@ -1,10 +1,21 @@
 <script lang="ts">
-	import { createEventDispatcher, onMount } from 'svelte';
-	import { Upload, Loader2, X, Sparkles, ArrowRight, ArrowLeft, Save } from 'lucide-svelte';
-	import { removeBgAndConvertToBase64 } from '$lib/utils/background-remover';
-	import MultiSelect from './MultiSelect.svelte';
-	import type { WardrobePrompt, WardrobeMasterData } from '$lib/types/wardrobe';
-	import type { ItemAnalysis } from '$lib/types/item';
+	import { createEventDispatcher, onMount } from "svelte";
+	import {
+		Upload,
+		Loader2,
+		X,
+		Sparkles,
+		ArrowRight,
+		ArrowLeft,
+		Save,
+	} from "lucide-svelte";
+	import { removeBgAndConvertToBase64 } from "$lib/utils/background-remover";
+	import MultiSelect from "./MultiSelect.svelte";
+	import type {
+		WardrobePrompt,
+		WardrobeMasterData,
+	} from "$lib/types/wardrobe";
+	import type { ItemAnalysis } from "$lib/types/item";
 
 	export let prompts: WardrobePrompt[];
 	export let masterData: WardrobeMasterData;
@@ -28,11 +39,11 @@
 	// Step 3: AI Options
 	let enableAnalysis = true; // Enable by default for faster flow
 	let enableGlowUp = false;
-	let glowUpQuality: 'low' | 'medium' | 'high' = 'medium';
+	let glowUpQuality: "low" | "medium" | "high" = "medium";
 	let selectedAnalysisPromptId: string | undefined;
 	let selectedImprovementPromptId: string | undefined;
 	let isProcessing = false;
-	let processingStep = '';
+	let processingStep = "";
 
 	// Analysis results
 	let analysisResult: ItemAnalysis | null = null;
@@ -41,23 +52,27 @@
 
 	// Step 4: Form
 	let formData = {
-		category: '',
-		subcategory: '',
+		category: "",
+		subcategory: "",
 		colors: [] as string[],
-		fit: '',
-		brand: '',
+		fit: "",
+		brand: "",
 		occasions: [] as string[],
-		description: ''
+		description: "",
 	};
 
 	// Prompts filtered by type
-	$: analysisPrompts = prompts.filter((p) => p.type === 'item_analysis');
-	$: improvementPrompts = prompts.filter((p) => p.type === 'item_improvement');
+	$: analysisPrompts = prompts.filter((p) => p.type === "item_analysis");
+	$: improvementPrompts = prompts.filter(
+		(p) => p.type === "item_improvement",
+	);
 
 	// Filtered subcategories based on selected category
 	$: filteredSubcategories = formData.category
 		? masterData.subcategories.filter((s) => {
-				const category = masterData.categories.find((c) => c.name === formData.category);
+				const category = masterData.categories.find(
+					(c) => c.name === formData.category,
+				);
 				return category && s.category_id === category.id;
 			})
 		: [];
@@ -65,18 +80,36 @@
 	// Filtered fits based on selected category
 	$: filteredFits = formData.category
 		? masterData.fits.filter((f) => {
-				const category = masterData.categories.find((c) => c.name === formData.category);
+				const category = masterData.categories.find(
+					(c) => c.name === formData.category,
+				);
+				// If fit has no category_id, it applies to all (if that's the logic, otherwise strict match)
+				// Assuming strict match is required based on user request
 				return category && f.category_id === category.id;
 			})
 		: [];
+
+	// Debugging
+	$: if (formData.category) {
+		const category = masterData.categories.find(
+			(c) => c.name === formData.category,
+		);
+		console.log(
+			"Selected Category:",
+			formData.category,
+			"ID:",
+			category?.id,
+		);
+		console.log("Filtered Fits:", filteredFits.length);
+	}
 
 	// Cost estimation
 	$: totalEstimatedCost =
 		(enableAnalysis ? 450 : 0) +
 		(enableGlowUp
-			? glowUpQuality === 'low'
+			? glowUpQuality === "low"
 				? 150
-				: glowUpQuality === 'high'
+				: glowUpQuality === "high"
 					? 2550
 					: 600
 			: 0);
@@ -84,16 +117,20 @@
 	// Auto-select default prompts on mount
 	onMount(() => {
 		// Find and select "Default Item Analyzer" prompt (latest version)
-		const analyzerMatch = analysisPrompts.find((p) =>
-			p.name.toLowerCase().includes('default') && p.name.toLowerCase().includes('analyzer')
+		const analyzerMatch = analysisPrompts.find(
+			(p) =>
+				p.name.toLowerCase().includes("default") &&
+				p.name.toLowerCase().includes("analyzer"),
 		);
 		if (analyzerMatch) {
 			selectedAnalysisPromptId = analyzerMatch.id;
 		}
 
 		// Find and select "Default Image Improver" prompt (latest version)
-		const improverMatch = improvementPrompts.find((p) =>
-			p.name.toLowerCase().includes('default') && p.name.toLowerCase().includes('improver')
+		const improverMatch = improvementPrompts.find(
+			(p) =>
+				p.name.toLowerCase().includes("default") &&
+				p.name.toLowerCase().includes("improver"),
 		);
 		if (improverMatch) {
 			selectedImprovementPromptId = improverMatch.id;
@@ -117,13 +154,13 @@
 
 		// Validate file type
 		if (!file.type.match(/image\/(jpeg|jpg|png)/)) {
-			alert('Please upload a JPEG or PNG image.');
+			alert("Please upload a JPEG or PNG image.");
 			return;
 		}
 
 		// Validate file size (max 20MB)
 		if (file.size > 20 * 1024 * 1024) {
-			alert('Image size must be less than 20MB.');
+			alert("Image size must be less than 20MB.");
 			return;
 		}
 
@@ -142,17 +179,22 @@
 		currentStep = 2;
 
 		try {
-			bgRemovedImage = await removeBgAndConvertToBase64(uploadedFile, (progress) => {
-				bgRemovalProgress = progress;
-			});
+			bgRemovedImage = await removeBgAndConvertToBase64(
+				uploadedFile,
+				(progress) => {
+					bgRemovalProgress = progress;
+				},
+			);
 
 			// Auto-proceed to AI options
 			setTimeout(() => {
 				currentStep = 3;
 			}, 500);
 		} catch (error) {
-			console.error('Background removal error:', error);
-			alert(`Background removal failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+			console.error("Background removal error:", error);
+			alert(
+				`Background removal failed: ${error instanceof Error ? error.message : "Unknown error"}`,
+			);
 			currentStep = 1; // Go back to upload
 			resetUpload();
 		} finally {
@@ -169,19 +211,19 @@
 		try {
 			// Step 1: Analysis (if enabled)
 			if (enableAnalysis) {
-				processingStep = 'Analyzing item...';
-				const response = await fetch('/api/item-improvement/analyze', {
-					method: 'POST',
-					headers: { 'Content-Type': 'application/json' },
+				processingStep = "Analyzing item...";
+				const response = await fetch("/api/item-improvement/analyze", {
+					method: "POST",
+					headers: { "Content-Type": "application/json" },
 					body: JSON.stringify({
 						image: bgRemovedImage,
-						promptId: selectedAnalysisPromptId
-					})
+						promptId: selectedAnalysisPromptId,
+					}),
 				});
 
 				if (!response.ok) {
 					const error = await response.json();
-					throw new Error(error.error || 'Analysis failed');
+					throw new Error(error.error || "Analysis failed");
 				}
 
 				const data = await response.json();
@@ -193,46 +235,50 @@
 					formData.subcategory = analysisResult.subcategory;
 					formData.colors = analysisResult.colors;
 					// Find matching fit from masterData (case-insensitive)
-					const fitFromAI = analysisResult.fit?.toLowerCase() || '';
+					const fitFromAI = analysisResult.fit?.toLowerCase() || "";
 					const matchedFit = masterData.fits.find(
-						(f) => f.name.toLowerCase() === fitFromAI
+						(f) => f.name.toLowerCase() === fitFromAI,
 					);
-					formData.fit = matchedFit?.name || '';
+					formData.fit = matchedFit?.name || "";
 					formData.occasions = analysisResult.occasions;
 					formData.description = analysisResult.description;
 					// Handle brand - check for actual null, undefined, or string "null"
-					formData.brand = (analysisResult.brand && analysisResult.brand !== 'null')
-						? analysisResult.brand
-						: '';
+					formData.brand =
+						analysisResult.brand && analysisResult.brand !== "null"
+							? analysisResult.brand
+							: "";
 				}
 			}
 
 			// Step 2: Glow Up (if enabled)
 			if (enableGlowUp) {
-				processingStep = 'Enhancing image...';
-				const response = await fetch('/api/item-improvement/improve', {
-					method: 'POST',
-					headers: { 'Content-Type': 'application/json' },
+				processingStep = "Enhancing image...";
+				const response = await fetch("/api/item-improvement/improve", {
+					method: "POST",
+					headers: { "Content-Type": "application/json" },
 					body: JSON.stringify({
 						itemData: analysisResult || {
-							category: formData.category || 'Top',
-							subcategory: formData.subcategory || 'Shirt',
-							colors: formData.colors.length > 0 ? formData.colors : ['blue'],
-							fit: formData.fit || 'regular',
+							category: formData.category || "Top",
+							subcategory: formData.subcategory || "Shirt",
+							colors:
+								formData.colors.length > 0
+									? formData.colors
+									: ["blue"],
+							fit: formData.fit || "regular",
 							occasions: formData.occasions,
 							description: formData.description,
 							brand: formData.brand,
-							confidence: 'medium'
+							confidence: "medium",
 						},
 						originalImage: bgRemovedImage,
 						quality: glowUpQuality,
-						promptId: selectedImprovementPromptId
-					})
+						promptId: selectedImprovementPromptId,
+					}),
 				});
 
 				if (!response.ok) {
 					const error = await response.json();
-					throw new Error(error.error || 'Image improvement failed');
+					throw new Error(error.error || "Image improvement failed");
 				}
 
 				const data = await response.json();
@@ -242,7 +288,7 @@
 			// Check if auto-save is possible (all fields filled with good confidence)
 			if (canAutoSave() && !autoSaveAttempted) {
 				autoSaveAttempted = true;
-				processingStep = 'Auto-saving to wardrobe...';
+				processingStep = "Auto-saving to wardrobe...";
 				const saved = await saveToWardrobe(true);
 				if (saved) {
 					return; // Success - modal will close via dispatch
@@ -253,19 +299,28 @@
 			// Move to form step if auto-save not possible or failed
 			currentStep = 4;
 		} catch (error) {
-			console.error('AI processing error:', error);
-			alert(`AI processing failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+			console.error("AI processing error:", error);
+			alert(
+				`AI processing failed: ${error instanceof Error ? error.message : "Unknown error"}`,
+			);
 		} finally {
 			isProcessing = false;
-			processingStep = '';
+			processingStep = "";
 		}
 	}
 
 	async function saveToWardrobe(isAutoSave = false): Promise<boolean> {
 		// Validate required fields
-		if (!formData.category || !formData.subcategory || formData.colors.length === 0 || !formData.description) {
+		if (
+			!formData.category ||
+			!formData.subcategory ||
+			formData.colors.length === 0 ||
+			!formData.description
+		) {
 			if (!isAutoSave) {
-				alert('Please fill in all required fields (category, subcategory, at least one color, description)');
+				alert(
+					"Please fill in all required fields (category, subcategory, at least one color, description)",
+				);
 			}
 			return false;
 		}
@@ -273,12 +328,12 @@
 		if (!isAutoSave) {
 			isProcessing = true;
 		}
-		processingStep = 'Saving to wardrobe...';
+		processingStep = "Saving to wardrobe...";
 
 		try {
-			const response = await fetch('/api/wardrobe-items', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
+			const response = await fetch("/api/wardrobe-items", {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
 				body: JSON.stringify({
 					originalImage: uploadedImageBase64,
 					improvedImage: improvedImageUrl || bgRemovedImage,
@@ -288,35 +343,40 @@
 					colors: formData.colors,
 					fit: formData.fit || undefined,
 					brand: formData.brand || undefined,
-					occasions: formData.occasions.length > 0 ? formData.occasions : undefined,
+					occasions:
+						formData.occasions.length > 0
+							? formData.occasions
+							: undefined,
 					analysisMetadata: analysisResult
 						? {
 								confidence: analysisResult.confidence,
 								colors: analysisResult.colors,
-								occasions: analysisResult.occasions
+								occasions: analysisResult.occasions,
 							}
-						: undefined
-				})
+						: undefined,
+				}),
 			});
 
 			if (!response.ok) {
 				const error = await response.json();
-				throw new Error(error.error || 'Failed to save item');
+				throw new Error(error.error || "Failed to save item");
 			}
 
 			// Success!
-			dispatch('success');
+			dispatch("success");
 			return true;
 		} catch (error) {
-			console.error('Save error:', error);
+			console.error("Save error:", error);
 			if (!isAutoSave) {
-				alert(`Failed to save item: ${error instanceof Error ? error.message : 'Unknown error'}`);
+				alert(
+					`Failed to save item: ${error instanceof Error ? error.message : "Unknown error"}`,
+				);
 			}
 			return false;
 		} finally {
 			if (!isAutoSave) {
 				isProcessing = false;
-				processingStep = '';
+				processingStep = "";
 			}
 		}
 	}
@@ -327,16 +387,13 @@
 		uploadedImageBase64 = null;
 		bgRemovedImage = null;
 		if (fileInput) {
-			fileInput.value = '';
+			fileInput.value = "";
 		}
 	}
 
 	function closeModal() {
-		dispatch('close');
+		dispatch("close");
 	}
-
-	// Computed: formData.color - primary color from colors array or manual entry
-	$: formData.color = formData.colors.length > 0 ? formData.colors[0] : '';
 
 	// Check if form data is complete for auto-save
 	function isFormDataComplete(): boolean {
@@ -353,19 +410,30 @@
 	function canAutoSave(): boolean {
 		if (!analysisResult) return false;
 		// Auto-save if all required fields are filled and confidence is medium or high
-		const hasGoodConfidence = analysisResult.confidence === 'medium' || analysisResult.confidence === 'high';
+		const hasGoodConfidence =
+			analysisResult.confidence === "medium" ||
+			analysisResult.confidence === "high";
 		return isFormDataComplete() && hasGoodConfidence;
 	}
 </script>
 
 <!-- Modal Overlay -->
-<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+<div
+	class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+>
 	<!-- Modal Container -->
-	<div class="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+	<div
+		class="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto"
+	>
 		<!-- Header -->
 		<div class="flex items-center justify-between p-6 border-b">
-			<h2 class="text-2xl font-bold text-gray-900">Add New Wardrobe Item</h2>
-			<button on:click={closeModal} class="text-gray-400 hover:text-gray-600 transition">
+			<h2 class="text-2xl font-bold text-gray-900">
+				Add New Wardrobe Item
+			</h2>
+			<button
+				on:click={closeModal}
+				class="text-gray-400 hover:text-gray-600 transition"
+			>
 				<X class="w-6 h-6" />
 			</button>
 		</div>
@@ -385,7 +453,9 @@
 						</div>
 						{#if step < 4}
 							<div
-								class="flex-1 h-1 mx-2 {currentStep > step ? 'bg-blue-600' : 'bg-gray-200'}"
+								class="flex-1 h-1 mx-2 {currentStep > step
+									? 'bg-blue-600'
+									: 'bg-gray-200'}"
 							></div>
 						{/if}
 					</div>
@@ -404,22 +474,37 @@
 			<!-- Step 1: Upload Image -->
 			{#if currentStep === 1}
 				<div>
-					<h3 class="text-lg font-semibold mb-4">Upload Item Image</h3>
+					<h3 class="text-lg font-semibold mb-4">
+						Upload Item Image
+					</h3>
 
 					<div
 						class="border-2 border-dashed border-gray-300 rounded-lg p-12 text-center hover:border-gray-400 transition-colors cursor-pointer"
 						on:click={() => fileInput.click()}
-						on:keydown={(e) => e.key === 'Enter' && fileInput.click()}
+						on:keydown={(e) =>
+							e.key === "Enter" && fileInput.click()}
 						role="button"
 						tabindex="0"
 					>
 						{#if uploadedImagePreview}
-							<img src={uploadedImagePreview} alt="Preview" class="max-h-64 mx-auto rounded" />
-							<p class="text-sm text-gray-600 mt-4">{uploadedFile?.name}</p>
+							<img
+								src={uploadedImagePreview}
+								alt="Preview"
+								class="max-h-64 mx-auto rounded"
+							/>
+							<p class="text-sm text-gray-600 mt-4">
+								{uploadedFile?.name}
+							</p>
 						{:else}
-							<Upload class="w-12 h-12 text-gray-400 mx-auto mb-4" />
-							<p class="text-gray-600 mb-2">Drag and drop an image here, or click to select</p>
-							<p class="text-sm text-gray-500">JPEG or PNG, max 20MB</p>
+							<Upload
+								class="w-12 h-12 text-gray-400 mx-auto mb-4"
+							/>
+							<p class="text-gray-600 mb-2">
+								Drag and drop an image here, or click to select
+							</p>
+							<p class="text-sm text-gray-500">
+								JPEG or PNG, max 20MB
+							</p>
 						{/if}
 						<input
 							bind:this={fileInput}
@@ -435,13 +520,21 @@
 			<!-- Step 2: Background Removal -->
 			{#if currentStep === 2}
 				<div>
-					<h3 class="text-lg font-semibold mb-4">Removing Background</h3>
+					<h3 class="text-lg font-semibold mb-4">
+						Removing Background
+					</h3>
 
 					{#if isRemovingBg}
-						<div class="flex flex-col items-center justify-center py-12">
-							<Loader2 class="w-12 h-12 animate-spin text-blue-600 mb-4" />
+						<div
+							class="flex flex-col items-center justify-center py-12"
+						>
+							<Loader2
+								class="w-12 h-12 animate-spin text-blue-600 mb-4"
+							/>
 							<p class="text-lg font-medium">Processing...</p>
-							<p class="text-sm text-gray-600 mt-2">This may take 10-20 seconds</p>
+							<p class="text-sm text-gray-600 mt-2">
+								This may take 10-20 seconds
+							</p>
 							{#if bgRemovalProgress > 0}
 								<div class="w-full max-w-md mt-4">
 									<div class="bg-gray-200 rounded-full h-2">
@@ -450,7 +543,11 @@
 											style="width: {bgRemovalProgress}%"
 										></div>
 									</div>
-									<p class="text-xs text-center mt-1 text-gray-500">{bgRemovalProgress}%</p>
+									<p
+										class="text-xs text-center mt-1 text-gray-500"
+									>
+										{bgRemovalProgress}%
+									</p>
 								</div>
 							{/if}
 							<p class="text-xs text-gray-500 mt-4">
@@ -468,7 +565,9 @@
 								/>
 							</div>
 							<div>
-								<p class="text-sm font-medium mb-2">Background Removed ✓</p>
+								<p class="text-sm font-medium mb-2">
+									Background Removed ✓
+								</p>
 								<img
 									src={bgRemovedImage}
 									alt="BG Removed"
@@ -483,13 +582,21 @@
 			<!-- Step 3: AI Enhancement Options -->
 			{#if currentStep === 3}
 				<div class="space-y-6">
-					<h3 class="text-lg font-semibold">AI Enhancement Options</h3>
+					<h3 class="text-lg font-semibold">
+						AI Enhancement Options
+					</h3>
 
 					<!-- Image Preview: Original vs BG Removed -->
 					{#if bgRemovedImage}
-						<div class="grid grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg">
+						<div
+							class="grid grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg"
+						>
 							<div>
-								<p class="text-sm font-medium mb-2 text-gray-600">Original</p>
+								<p
+									class="text-sm font-medium mb-2 text-gray-600"
+								>
+									Original
+								</p>
 								<img
 									src={uploadedImagePreview}
 									alt="Original"
@@ -497,7 +604,11 @@
 								/>
 							</div>
 							<div>
-								<p class="text-sm font-medium mb-2 text-gray-600">Background Removed ✓</p>
+								<p
+									class="text-sm font-medium mb-2 text-gray-600"
+								>
+									Background Removed ✓
+								</p>
 								<img
 									src={bgRemovedImage}
 									alt="BG Removed"
@@ -508,12 +619,21 @@
 					{/if}
 
 					<!-- Auto-fill Analysis -->
-					<label class="flex items-start gap-3 p-4 border rounded-lg hover:bg-gray-50 cursor-pointer">
-						<input type="checkbox" bind:checked={enableAnalysis} class="mt-1" />
+					<label
+						class="flex items-start gap-3 p-4 border rounded-lg hover:bg-gray-50 cursor-pointer"
+					>
+						<input
+							type="checkbox"
+							bind:checked={enableAnalysis}
+							class="mt-1"
+						/>
 						<div class="flex-1">
-							<div class="font-medium">Auto-fill item details with AI</div>
+							<div class="font-medium">
+								Auto-fill item details with AI
+							</div>
 							<div class="text-sm text-gray-600 mt-1">
-								Automatically detect category, colors, fit, and description
+								Automatically detect category, colors, fit, and
+								description
 								<br />
 								Cost: ~Rp 400
 							</div>
@@ -527,7 +647,11 @@
 									{#each analysisPrompts as prompt}
 										<option value={prompt.id}>
 											{prompt.name} (v{prompt.version})
-											{#if prompt.name.toLowerCase().includes('default') && prompt.name.toLowerCase().includes('analyzer')}
+											{#if prompt.name
+												.toLowerCase()
+												.includes("default") && prompt.name
+													.toLowerCase()
+													.includes("analyzer")}
 												✓
 											{/if}
 										</option>
@@ -538,19 +662,37 @@
 					</label>
 
 					<!-- Glow Up Enhancement -->
-					<label class="flex items-start gap-3 p-4 border rounded-lg hover:bg-gray-50 cursor-pointer">
-						<input type="checkbox" bind:checked={enableGlowUp} class="mt-1" />
+					<label
+						class="flex items-start gap-3 p-4 border rounded-lg hover:bg-gray-50 cursor-pointer"
+					>
+						<input
+							type="checkbox"
+							bind:checked={enableGlowUp}
+							class="mt-1"
+						/>
 						<div class="flex-1">
-							<div class="font-medium">Enhance image with AI (Glow Up)</div>
+							<div class="font-medium">
+								Enhance image with AI (Glow Up)
+							</div>
 							<div class="text-sm text-gray-600 mt-1">
-								Create professional product photo with clean background
+								Create professional product photo with clean
+								background
 							</div>
 
 							{#if enableGlowUp}
-								<select bind:value={glowUpQuality} class="mt-2 w-full px-3 py-2 border rounded-lg">
-									<option value="low">Low Quality (Rp 150)</option>
-									<option value="medium">Medium Quality (Rp 600)</option>
-									<option value="high">High Quality (Rp 2,550)</option>
+								<select
+									bind:value={glowUpQuality}
+									class="mt-2 w-full px-3 py-2 border rounded-lg"
+								>
+									<option value="low"
+										>Low Quality (Rp 150)</option
+									>
+									<option value="medium"
+										>Medium Quality (Rp 600)</option
+									>
+									<option value="high"
+										>High Quality (Rp 2,550)</option
+									>
 								</select>
 
 								<select
@@ -561,7 +703,11 @@
 									{#each improvementPrompts as prompt}
 										<option value={prompt.id}>
 											{prompt.name} (v{prompt.version})
-											{#if prompt.name.toLowerCase().includes('default') && prompt.name.toLowerCase().includes('improver')}
+											{#if prompt.name
+												.toLowerCase()
+												.includes("default") && prompt.name
+													.toLowerCase()
+													.includes("improver")}
 												✓
 											{/if}
 										</option>
@@ -572,23 +718,28 @@
 					</label>
 
 					<!-- Total Cost Estimate -->
-					<div class="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+					<div
+						class="p-4 bg-blue-50 border border-blue-200 rounded-lg"
+					>
 						<div class="flex items-center justify-between">
 							<div>
-								<div class="text-sm font-medium text-gray-700">Estimated Total Cost:</div>
+								<div class="text-sm font-medium text-gray-700">
+									Estimated Total Cost:
+								</div>
 								<div class="text-xs text-gray-600 mt-1">
 									Background removal: Free (processed locally)
 								</div>
 							</div>
 							<div class="text-2xl font-bold text-blue-700">
-								Rp {totalEstimatedCost.toLocaleString('id-ID')}
+								Rp {totalEstimatedCost.toLocaleString("id-ID")}
 							</div>
 						</div>
 					</div>
 
 					<button
 						on:click={runAIProcessing}
-						disabled={isProcessing || (!enableAnalysis && !enableGlowUp)}
+						disabled={isProcessing ||
+							(!enableAnalysis && !enableGlowUp)}
 						class="w-full bg-blue-600 text-white font-semibold py-3 px-4 rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
 					>
 						{#if isProcessing}
@@ -627,7 +778,9 @@
 
 					<!-- Category -->
 					<div>
-						<label class="block text-sm font-medium text-gray-700 mb-1">
+						<label
+							class="block text-sm font-medium text-gray-700 mb-1"
+						>
 							Category <span class="text-red-500">*</span>
 						</label>
 						<select
@@ -637,14 +790,18 @@
 						>
 							<option value="">Select category...</option>
 							{#each masterData.categories as category}
-								<option value={category.name}>{category.name}</option>
+								<option value={category.name}
+									>{category.name}</option
+								>
 							{/each}
 						</select>
 					</div>
 
 					<!-- Subcategory -->
 					<div>
-						<label class="block text-sm font-medium text-gray-700 mb-1">
+						<label
+							class="block text-sm font-medium text-gray-700 mb-1"
+						>
 							Subcategory <span class="text-red-500">*</span>
 						</label>
 						<select
@@ -655,7 +812,9 @@
 						>
 							<option value="">Select subcategory...</option>
 							{#each filteredSubcategories as subcategory}
-								<option value={subcategory.name}>{subcategory.name}</option>
+								<option value={subcategory.name}
+									>{subcategory.name}</option
+								>
 							{/each}
 						</select>
 					</div>
@@ -677,7 +836,10 @@
 
 					<!-- Fit -->
 					<div>
-						<label class="block text-sm font-medium text-gray-700 mb-1">Fit (Optional)</label>
+						<label
+							class="block text-sm font-medium text-gray-700 mb-1"
+							>Fit (Optional)</label
+						>
 						<select
 							bind:value={formData.fit}
 							class="w-full px-3 py-2 border rounded-lg"
@@ -692,7 +854,10 @@
 
 					<!-- Brand -->
 					<div>
-						<label class="block text-sm font-medium text-gray-700 mb-1">Brand (Optional)</label>
+						<label
+							class="block text-sm font-medium text-gray-700 mb-1"
+							>Brand (Optional)</label
+						>
 						<input
 							type="text"
 							bind:value={formData.brand}
@@ -718,7 +883,9 @@
 
 					<!-- Description -->
 					<div>
-						<label class="block text-sm font-medium text-gray-700 mb-1">
+						<label
+							class="block text-sm font-medium text-gray-700 mb-1"
+						>
 							Description <span class="text-red-500">*</span>
 						</label>
 						<textarea

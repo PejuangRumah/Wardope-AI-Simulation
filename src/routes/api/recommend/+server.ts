@@ -11,14 +11,14 @@ import type { RecommendationResponse } from '$lib/types';
 import { GuardrailTripwireTriggered } from '$lib/services/openai';
 import { GUARDRAIL_ERROR_MESSAGES } from '$lib/config/guardrails';
 
-export const POST: RequestHandler = async ({ request }) => {
+export const POST: RequestHandler = async ({ request, locals }) => {
   const startTime = Date.now();
 
   try {
     // 1. Parse form data
     const formData = await request.formData();
     const gender = formData.get('gender') as string;
-    const csvFile = formData.get('csv') as File;
+    // CSV file is no longer used
     const occasion = formData.get('occasion') as string;
     const note = (formData.get('note') as string) || '';
     const customPrompt = formData.get('customPrompt') as string;
@@ -26,10 +26,6 @@ export const POST: RequestHandler = async ({ request }) => {
     // 2. Validate inputs
     if (!gender || !GENDERS.includes(gender as any)) {
       return json({ error: 'Invalid gender. Must be "men" or "women".' }, { status: 400 });
-    }
-
-    if (!csvFile) {
-      return json({ error: 'CSV file is required.' }, { status: 400 });
     }
 
     if (!occasion || !OCCASIONS.includes(occasion as any)) {
@@ -41,32 +37,60 @@ export const POST: RequestHandler = async ({ request }) => {
       );
     }
 
-    // 3. Parse CSV
-    const csvText = await csvFile.text();
-    const rawItems = parseCSV(csvText);
+    // 3. Fetch wardrobe items from backend
+    const session = await locals.getSession();
+    if (!session) {
+      return json({ error: 'Unauthorized' }, { status: 401 });
+    }
 
-    // 4. Validate items
-    const { valid: items, invalid } = validateWardrobeItems(rawItems);
-
-    if (items.length === 0) {
-      return json(
+    // Import dynamically to avoid circular dependency issues if any, though standard import is fine here
+    const { listWardrobeItems } = await import('$lib/services/wardrobe');
+    
+    // Fetch all items (pagination might be needed for very large wardrobes, but for now fetch a reasonable limit)
+    // We fetch 100 items for now. In a real app we might need better strategy.
+    const wardrobeResponse = await listWardrobeItems(session.user.id, { limit: 100 }, locals.supabase);
+    
+    if (wardrobeResponse.items.length === 0) {
+       return json(
         {
-          error: 'No valid items found in CSV. Please check required fields: id, desc, category, subcategory, color.'
+          error: 'Your wardrobe is empty. Please add items to your wardrobe first.'
         },
         { status: 400 }
       );
     }
 
-    // Log warnings for invalid items
-    if (invalid.length > 0) {
-      console.warn(`Warning: ${invalid.length} invalid items at CSV lines: ${invalid.join(', ')}`);
+    // 4. Transform backend items to "CSV-like" format expected by the system
+    const rawItems = wardrobeResponse.items.map(item => ({
+      id: item.id,
+      desc: item.description,
+      category: item.category,
+      subcategory: item.subcategory,
+      color: item.colors.map(c => c.name).join(', '),
+      fit: item.fit || '',
+      brand: item.brand || '',
+      occasion: item.occasions.map(o => o.name).join(', '),
+      image: item.image_url || '', // Use the signed URL
+      price: '', // Backend doesn't seem to have price, leave empty
+      gender: gender // Add gender context if needed, though filtering happens later
+    }));
+
+    // 5. Validate items (reuse existing validation logic)
+    const { valid: items, invalid } = validateWardrobeItems(rawItems);
+
+    if (items.length === 0) {
+      return json(
+        {
+          error: 'No valid items found in your wardrobe. Please ensure items have description, category, and color.'
+        },
+        { status: 400 }
+      );
     }
 
-    // 5. Create embeddings for wardrobe items
+    // 6. Create embeddings for wardrobe items
     const { itemsWithEmbeddings, totalTokens: embeddingTokens } =
       await createWardrobeEmbeddings(items);
 
-    // 6. Create query embedding
+    // 7. Create query embedding
     const { embedding: queryEmbedding, tokens: queryTokens } = await createQueryEmbedding(
       occasion,
       note
@@ -74,10 +98,10 @@ export const POST: RequestHandler = async ({ request }) => {
 
     const totalEmbeddingTokens = embeddingTokens + queryTokens;
 
-    // 7. Semantic search + category balancing
+    // 8. Semantic search + category balancing
     const { selectedItems } = semanticSearch(itemsWithEmbeddings, queryEmbedding);
 
-    // 8. Generate outfit combinations with GPT 5.1 Nano
+    // 9. Generate outfit combinations with GPT 5.1 Nano
     const { combinations, promptTokens, completionTokens } = await generateOutfits(
       selectedItems,
       occasion,
@@ -85,11 +109,11 @@ export const POST: RequestHandler = async ({ request }) => {
       customPrompt
     );
 
-    // 9. Calculate costs
+    // 10. Calculate costs
     const processingTime = Date.now() - startTime;
     const usage = calculateCosts(totalEmbeddingTokens, promptTokens, completionTokens, processingTime);
 
-    // 10. Return response
+    // 11. Return response
     const response: RecommendationResponse = {
       combinations,
       usage,

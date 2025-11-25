@@ -27,6 +27,11 @@ export const load: LayoutServerLoad = async ({ locals: { getSession, supabase } 
 		subcategories: subcategoriesRes.data || []
 	};
 
+	if (fitsRes.error) {
+		console.error("Error fetching fits:", fitsRes.error);
+	}
+
+
 	// Return user session data and master data
 	return {
 		session,

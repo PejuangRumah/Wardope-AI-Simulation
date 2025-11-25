@@ -1,11 +1,16 @@
 <script lang="ts">
-	import { createEventDispatcher } from 'svelte';
+	import { createEventDispatcher } from "svelte";
 
 	// Props
-	export let options: Array<{ id: string; name: string; hex_code?: string; description?: string }> = [];
+	export let options: Array<{
+		id: string;
+		name: string;
+		hex_code?: string;
+		description?: string;
+	}> = [];
 	export let selectedValues: string[] = [];
-	export let placeholder: string = 'Select options...';
-	export let label: string = '';
+	export let placeholder: string = "Select options...";
+	export let label: string = "";
 	export let required: boolean = false;
 	export let disabled: boolean = false;
 	export let showColorDots: boolean = false; // For color options with hex codes
@@ -17,24 +22,24 @@
 		if (disabled) return;
 
 		if (selectedValues.includes(optionName)) {
-			selectedValues = selectedValues.filter(v => v !== optionName);
+			selectedValues = selectedValues.filter((v) => v !== optionName);
 		} else {
 			selectedValues = [...selectedValues, optionName];
 		}
 
-		dispatch('change', selectedValues);
+		dispatch("change", selectedValues);
 	}
 
 	// Remove a selected value (from chips)
 	function removeValue(value: string) {
 		if (disabled) return;
-		selectedValues = selectedValues.filter(v => v !== value);
-		dispatch('change', selectedValues);
+		selectedValues = selectedValues.filter((v) => v !== value);
+		dispatch("change", selectedValues);
 	}
 
 	// Get option by name
 	function getOptionByName(name: string) {
-		return options.find(opt => opt.name === name);
+		return options.find((opt) => opt.name === name);
 	}
 
 	let dropdownOpen = false;
@@ -49,9 +54,9 @@
 
 	$: {
 		if (dropdownOpen) {
-			document.addEventListener('click', handleClickOutside);
+			document.addEventListener("click", handleClickOutside);
 		} else {
-			document.removeEventListener('click', handleClickOutside);
+			document.removeEventListener("click", handleClickOutside);
 		}
 	}
 </script>
@@ -76,7 +81,7 @@
 			role="button"
 			tabindex="0"
 			on:keydown={(e) => {
-				if (e.key === 'Enter' || e.key === ' ') {
+				if (e.key === "Enter" || e.key === " ") {
 					e.preventDefault();
 					!disabled && (dropdownOpen = !dropdownOpen);
 				}
@@ -88,19 +93,28 @@
 				<div class="chips-container">
 					{#each selectedValues as value}
 						{@const option = getOptionByName(value)}
+						{@const nameMatch = value.match(
+							/^(.+?)\s*\((#[0-9A-Fa-f]{6})\)$/,
+						)}
+						{@const displayName = nameMatch ? nameMatch[1] : value}
+						{@const displayHex = nameMatch
+							? nameMatch[2]
+							: option?.hex_code}
+
 						<div class="chip">
-							{#if showColorDots && option?.hex_code}
+							{#if showColorDots && displayHex}
 								<span
 									class="color-dot"
-									style="background-color: {option.hex_code};"
+									style="background-color: {displayHex};"
 								></span>
 							{/if}
-							<span class="chip-text">{value}</span>
+							<span class="chip-text">{displayName}</span>
 							<button
 								type="button"
 								class="chip-remove"
-								on:click|stopPropagation={() => removeValue(value)}
-								disabled={disabled}
+								on:click|stopPropagation={() =>
+									removeValue(value)}
+								{disabled}
 							>
 								×
 							</button>
@@ -116,7 +130,11 @@
 				viewBox="0 0 20 20"
 				fill="currentColor"
 			>
-				<path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+				<path
+					fill-rule="evenodd"
+					d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
+					clip-rule="evenodd"
+				/>
 			</svg>
 		</div>
 
@@ -124,10 +142,24 @@
 		{#if dropdownOpen}
 			<div class="dropdown-menu">
 				{#if options.length === 0}
-					<div class="dropdown-item disabled">No options available</div>
+					<div class="dropdown-item disabled">
+						No options available
+					</div>
 				{:else}
 					{#each options as option}
-						{@const isSelected = selectedValues.includes(option.name)}
+						{@const isSelected = selectedValues.includes(
+							option.name,
+						)}
+						{@const nameMatch = option.name.match(
+							/^(.+?)\s*\((#[0-9A-Fa-f]{6})\)$/,
+						)}
+						{@const displayName = nameMatch
+							? nameMatch[1]
+							: option.name}
+						{@const displayHex = nameMatch
+							? nameMatch[2]
+							: option.hex_code}
+
 						<div
 							class="dropdown-item"
 							class:selected={isSelected}
@@ -144,17 +176,19 @@
 								/>
 							</div>
 
-							{#if showColorDots && option.hex_code}
+							{#if showColorDots && displayHex}
 								<span
 									class="color-dot"
-									style="background-color: {option.hex_code};"
+									style="background-color: {displayHex};"
 								></span>
 							{/if}
 
-							<span class="option-label">{option.name}</span>
+							<span class="option-label">{displayName}</span>
 
 							{#if option.description}
-								<span class="option-description">{option.description}</span>
+								<span class="option-description"
+									>{option.description}</span
+								>
 							{/if}
 						</div>
 					{/each}
@@ -179,7 +213,9 @@
 		border-radius: 8px;
 		background-color: white;
 		cursor: pointer;
-		transition: border-color 0.2s, box-shadow 0.2s;
+		transition:
+			border-color 0.2s,
+			box-shadow 0.2s;
 	}
 
 	.multi-select-input:hover:not(.disabled) {
@@ -285,7 +321,9 @@
 		background-color: white;
 		border: 1px solid #d1d5db;
 		border-radius: 8px;
-		box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+		box-shadow:
+			0 4px 6px -1px rgba(0, 0, 0, 0.1),
+			0 2px 4px -1px rgba(0, 0, 0, 0.06);
 		z-index: 50;
 	}
 

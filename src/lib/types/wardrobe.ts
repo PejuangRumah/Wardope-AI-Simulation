@@ -88,6 +88,7 @@ export interface WardrobeMasterData {
 	colors: Array<{ id: string; name: string; hex_code?: string; display_order: number }>;
 	fits: Array<{ id: string; name: string; category_id?: string; display_order: number }>;
 	occasions: Array<{ id: string; name: string; description?: string; display_order: number }>;
+	subcategories: Array<{ id: string; name: string; category_id: string; display_order: number }>;
 }
 
 /**
