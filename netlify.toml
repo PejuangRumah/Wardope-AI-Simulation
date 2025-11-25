@@ -9,8 +9,3 @@
 # - PUBLIC_SUPABASE_ANON_KEY
 # - SUPABASE_SERVICE_ROLE_KEY
 # - OPENAI_API_KEY
-
-[[redirects]]
-  from = "/*"
-  to = "/index.html"
-  status = 200
