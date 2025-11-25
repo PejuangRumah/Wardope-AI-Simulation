@@ -1,0 +1,106 @@
+<script lang="ts">
+	import { goto } from '$app/navigation';
+
+	let email = '';
+	let password = '';
+	let loading = false;
+	let error = '';
+	let success = false;
+
+	async function handleRegister() {
+		loading = true;
+		error = '';
+		success = false;
+
+		try {
+			const response = await fetch('/api/auth/register', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify({ email, password })
+			});
+
+			const result = await response.json();
+
+			if (!response.ok) {
+				error = result.error || 'Terjadi kesalahan saat registrasi';
+				loading = false;
+				return;
+			}
+
+			// Registration successful
+			if (result.requiresConfirmation) {
+				success = true;
+				error = result.message || 'Silakan cek email Anda untuk konfirmasi akun.';
+			} else {
+				// Auto-login successful, redirect to wardrobe
+				goto('/wardrobe');
+			}
+		} catch (err) {
+			console.error('Registration error:', err);
+			error = 'Terjadi kesalahan saat registrasi. Silakan coba lagi.';
+		} finally {
+			loading = false;
+		}
+	}
+</script>
+
+<div class="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+	<div class="max-w-md w-full space-y-8">
+		<div>
+			<h2 class="text-center text-3xl font-bold text-gray-900">Register</h2>
+			<p class="mt-2 text-center text-sm text-gray-600">
+				Already have an account?
+				<a href="/login" class="font-medium text-indigo-600 hover:text-indigo-500">Login</a>
+			</p>
+		</div>
+
+		<form class="mt-8 space-y-6" on:submit|preventDefault={handleRegister}>
+			<div class="space-y-4">
+				<div>
+					<label for="email" class="block text-sm font-medium text-gray-700">Email</label>
+					<input
+						id="email"
+						type="email"
+						bind:value={email}
+						required
+						class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+					/>
+				</div>
+
+				<div>
+					<label for="password" class="block text-sm font-medium text-gray-700"
+						>Password (min 6 characters)</label
+					>
+					<input
+						id="password"
+						type="password"
+						bind:value={password}
+						required
+						minlength="6"
+						class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+					/>
+				</div>
+			</div>
+
+			{#if error}
+				<div class="text-sm" class:text-red-600={!success} class:text-green-600={success}>
+					{error}
+				</div>
+			{/if}
+
+			<button
+				type="submit"
+				disabled={loading}
+				class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
+			>
+				{loading ? 'Creating account...' : 'Register'}
+			</button>
+		</form>
+
+		<p class="text-center text-xs text-gray-500 mt-8">
+			Proof of Concept - Wardope AI
+		</p>
+	</div>
+</div>

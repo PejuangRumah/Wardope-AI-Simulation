@@ -1,61 +1,110 @@
-// Item Analyzer Service - Analyze fashion items using GPT-4o Vision API
+// Item Analyzer Service - Analyze fashion items using GPT 5.1 Nano
 import { getOpenAIClientWithoutGuardrails } from './openai';
 import type { ItemAnalysis } from '$lib/types/item';
+import type { PromptInfo } from '$lib/types/wardrobe';
+import type { SupabaseClient } from '@supabase/supabase-js';
+import { getDefaultAnalysisPrompt } from '$lib/constants/item-master';
 import {
-	getDefaultAnalysisPrompt,
-	getAllCategories,
-	getAllSubcategories,
-	COLORS,
-	OCCASIONS,
-	getAllFits
-} from '$lib/constants/item-master';
+	getAllMasterDataVariables,
+	replacePromptVariables,
+	type MasterDataVariables
+} from './master-data-formatter';
+
+// Model for item analysis - using cheaper model for cost efficiency
+const ITEM_ANALYSIS_MODEL = 'gpt-4o-mini';
 
 /**
- * Analyze a fashion item image using GPT-4o Vision API
+ * Analyze a fashion item image using GPT 5.1 Nano
  * Returns structured data about the item (category, colors, fit, etc.)
  *
  * @param imageBase64 - Base64 encoded image string (without data:image prefix)
- * @param customPrompt - Optional custom prompt to override default
- * @returns Promise resolving to ItemAnalysis and token usage
+ * @param options - Optional configuration
+ * @param options.customPrompt - Custom prompt to override default
+ * @param options.promptId - ID of prompt to fetch from database
+ * @param options.supabase - Supabase client for fetching prompts
+ * @returns Promise resolving to ItemAnalysis, token usage, and prompt info
  */
 export async function analyzeItemImage(
 	imageBase64: string,
-	customPrompt?: string
+	options?: {
+		customPrompt?: string;
+		promptId?: string;
+		supabase?: SupabaseClient;
+	}
 ): Promise<{
 	analysis: ItemAnalysis;
 	promptTokens: number;
 	completionTokens: number;
+	promptUsed?: PromptInfo;
 }> {
 	// Get OpenAI client without guardrails (no user input to validate)
 	const openai = getOpenAIClientWithoutGuardrails();
 
-	// Prepare system prompt
-	const systemPrompt = customPrompt || getDefaultAnalysisPrompt();
+	// Prepare system prompt and prompt info
+	let systemPrompt = options?.customPrompt || getDefaultAnalysisPrompt();
+	let promptInfo: PromptInfo | undefined = undefined;
 
-	// Add context about available options
-	const contextPrompt = `${systemPrompt}
+	// Fetch prompt from database if supabase client provided
+	if (options?.supabase) {
+		if (options.promptId) {
+			// Fetch specific prompt by ID
+			const { data } = await options.supabase
+				.from('prompts')
+				.select('*')
+				.eq('id', options.promptId)
+				.single();
 
-**Available Options:**
+			if (data) {
+				systemPrompt = data.content;
+				promptInfo = {
+					id: data.id,
+					name: data.name,
+					version: data.version
+				};
+			}
+		} else {
+			// Fetch active item_analysis prompt
+			const { data } = await options.supabase
+				.from('prompts')
+				.select('*')
+				.eq('type', 'item_analysis')
+				.eq('is_active', true)
+				.single();
 
-Categories: ${getAllCategories().join(', ')}
+			if (data) {
+				systemPrompt = data.content;
+				promptInfo = {
+					id: data.id,
+					name: data.name,
+					version: data.version
+				};
+			}
+		}
+	}
 
-Subcategories: ${getAllSubcategories().join(', ')}
+	// Get master data variables from database (or use defaults)
+	let masterDataVariables: MasterDataVariables | null = null;
+	if (options?.supabase) {
+		try {
+			masterDataVariables = await getAllMasterDataVariables(options.supabase);
+		} catch (error) {
+			console.warn('Failed to fetch master data, using defaults:', error);
+		}
+	}
 
-Colors: ${COLORS.join(', ')}
+	// Replace prompt variables with actual master data
+	let finalPrompt = systemPrompt;
+	if (masterDataVariables) {
+		finalPrompt = replacePromptVariables(systemPrompt, masterDataVariables);
+	}
 
-Occasions: ${OCCASIONS.join(', ')}
-
-Fits: ${getAllFits().join(', ')}
-
-IMPORTANT: Choose values ONLY from the lists above. Be specific and accurate.`;
-
-	// Call GPT-4o Vision API with structured output
+	// Call GPT 5.1 Nano with structured output
 	const response = await openai.chat.completions.create({
-		model: 'gpt-4o',
+		model: ITEM_ANALYSIS_MODEL,
 		messages: [
 			{
 				role: 'system',
-				content: contextPrompt
+				content: finalPrompt
 			},
 			{
 				role: 'user',
@@ -67,7 +116,7 @@ IMPORTANT: Choose values ONLY from the lists above. Be specific and accurate.`;
 					{
 						type: 'image_url',
 						image_url: {
-							url: `data:image/jpeg;base64,${imageBase64}`
+							url: `data:image/png;base64,${imageBase64}`
 						}
 					}
 				]
@@ -155,7 +204,8 @@ IMPORTANT: Choose values ONLY from the lists above. Be specific and accurate.`;
 			confidence: result.confidence || 'medium'
 		},
 		promptTokens: response.usage?.prompt_tokens || 0,
-		completionTokens: response.usage?.completion_tokens || 0
+		completionTokens: response.usage?.completion_tokens || 0,
+		promptUsed: promptInfo
 	};
 }
 
