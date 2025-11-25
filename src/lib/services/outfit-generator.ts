@@ -1,4 +1,4 @@
-// Outfit Generator Service - Generate outfit combinations using GPT-4o
+// Outfit Generator Service - Generate outfit combinations using GPT 5.1 Nano
 import { getOpenAIClient } from './openai';
 import type { WardrobeItemWithEmbedding, OutfitCombination } from '$lib/types';
 
@@ -62,7 +62,7 @@ function buildSystemPrompt(template: string, occasion: string, note?: string): s
 }
 
 /**
- * Generate outfit combinations using GPT-4o with structured output
+ * Generate outfit combinations using GPT 5.1 Nano with structured output
  */
 export async function generateOutfits(
   items: WardrobeItemWithEmbedding[],
@@ -94,7 +94,7 @@ export async function generateOutfits(
   // Get OpenAI client with guardrails
   const openai = await getOpenAIClient();
 
-  // Call GPT-4o with structured output
+  // Call GPT 5.1 Nano with structured output
   const response = await openai.chat.completions.create({
     model: 'gpt-4o-2024-08-06',
     messages: [
