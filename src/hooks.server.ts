@@ -2,15 +2,15 @@ import { createServerClient } from '@supabase/ssr';
 import type { Handle } from '@sveltejs/kit';
 import type { Session } from '@supabase/supabase-js';
 import { getValidatedSession } from '$lib/utils/auth';
+import { PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_ANON_KEY } from '$env/static/public';
 
 export const handle: Handle = async ({ event, resolve }) => {
 
 	// Create a Supabase client specific to this request
 	// This client can read and write cookies in server-side code
-	// Using process.env for Netlify compatibility during SSR build
 	event.locals.supabase = createServerClient(
-		process.env.PUBLIC_SUPABASE_URL!,
-		process.env.PUBLIC_SUPABASE_ANON_KEY!,
+		PUBLIC_SUPABASE_URL,
+		PUBLIC_SUPABASE_ANON_KEY,
 		{
 			cookies: {
 				getAll: () => {

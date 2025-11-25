@@ -2,9 +2,7 @@
 import { GuardrailsOpenAI, GuardrailTripwireTriggered } from '@openai/guardrails';
 import OpenAI from 'openai';
 import { guardrailsConfig } from '$lib/config/guardrails';
-
-// Using process.env for Netlify compatibility during SSR build
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+import { OPENAI_API_KEY } from '$env/static/private';
 
 if (!OPENAI_API_KEY) {
 	throw new Error('OPENAI_API_KEY is not set in environment variables');
