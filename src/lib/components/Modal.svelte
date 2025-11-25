@@ -1,19 +1,19 @@
 <script lang="ts">
-	import { createEventDispatcher } from 'svelte';
-	import { X } from 'lucide-svelte';
+	import { createEventDispatcher } from "svelte";
+	import { X } from "lucide-svelte";
 
 	export let open = false;
-	export let title = '';
-	export let size: 'sm' | 'md' | 'lg' = 'md';
+	export let title = "";
+	export let size: "sm" | "md" | "lg" = "md";
 
 	const dispatch = createEventDispatcher();
 
 	function close() {
-		dispatch('close');
+		dispatch("close");
 	}
 
 	function handleKeydown(e: KeyboardEvent) {
-		if (e.key === 'Escape' && open) {
+		if (e.key === "Escape" && open) {
 			close();
 		}
 	}
@@ -25,9 +25,9 @@
 	}
 
 	const sizeClasses = {
-		sm: 'max-w-md',
-		md: 'max-w-lg',
-		lg: 'max-w-2xl'
+		sm: "max-w-md",
+		md: "max-w-lg",
+		lg: "max-w-2xl",
 	};
 </script>
 
@@ -37,17 +37,27 @@
 	<div
 		class="fixed inset-0 z-50 overflow-y-auto"
 		on:click={handleBackdropClick}
+		on:keydown={(e) => e.key === "Escape" && close()}
 		role="dialog"
 		aria-modal="true"
+		tabindex="-1"
 	>
 		<div class="flex min-h-screen items-center justify-center p-4">
 			<!-- Backdrop -->
-			<div class="fixed inset-0 bg-black bg-opacity-50 transition-opacity" />
+			<div
+				class="fixed inset-0 bg-black bg-opacity-50 transition-opacity"
+			></div>
 
 			<!-- Modal -->
-			<div class="relative bg-white rounded-lg shadow-xl {sizeClasses[size]} w-full">
+			<div
+				class="relative bg-white rounded-lg shadow-xl {sizeClasses[
+					size
+				]} w-full"
+			>
 				<!-- Header -->
-				<div class="flex items-center justify-between p-4 border-b border-gray-200">
+				<div
+					class="flex items-center justify-between p-4 border-b border-gray-200"
+				>
 					<h3 class="text-lg font-semibold text-gray-900">{title}</h3>
 					<button
 						on:click={close}
@@ -66,7 +76,9 @@
 
 				<!-- Footer (optional slot) -->
 				{#if $$slots.footer}
-					<div class="flex justify-end gap-2 p-4 border-t border-gray-200 bg-gray-50">
+					<div
+						class="flex justify-end gap-2 p-4 border-t border-gray-200 bg-gray-50"
+					>
 						<slot name="footer" />
 					</div>
 				{/if}

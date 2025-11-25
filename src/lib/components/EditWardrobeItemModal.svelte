@@ -161,10 +161,14 @@
             <div class="space-y-4">
                 <!-- Category -->
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">
+                    <label
+                        for="edit-category"
+                        class="block text-sm font-medium text-gray-700 mb-1"
+                    >
                         Category <span class="text-red-500">*</span>
                     </label>
                     <select
+                        id="edit-category"
                         bind:value={formData.category}
                         class="w-full px-3 py-2 border rounded-lg"
                         required
@@ -180,10 +184,14 @@
 
                 <!-- Subcategory -->
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">
+                    <label
+                        for="edit-subcategory"
+                        class="block text-sm font-medium text-gray-700 mb-1"
+                    >
                         Subcategory <span class="text-red-500">*</span>
                     </label>
                     <select
+                        id="edit-subcategory"
                         bind:value={formData.subcategory}
                         class="w-full px-3 py-2 border rounded-lg"
                         required
@@ -201,6 +209,7 @@
                 <!-- Colors (Multi-select) -->
                 <div>
                     <MultiSelect
+                        id="edit-colors"
                         label="Colors"
                         required={true}
                         options={masterData.colors}
@@ -212,10 +221,13 @@
 
                 <!-- Fit -->
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1"
+                    <label
+                        for="edit-fit"
+                        class="block text-sm font-medium text-gray-700 mb-1"
                         >Fit (Optional)</label
                     >
                     <select
+                        id="edit-fit"
                         bind:value={formData.fit}
                         class="w-full px-3 py-2 border rounded-lg"
                         disabled={!formData.category}
@@ -229,10 +241,13 @@
 
                 <!-- Brand -->
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1"
+                    <label
+                        for="edit-brand"
+                        class="block text-sm font-medium text-gray-700 mb-1"
                         >Brand (Optional)</label
                     >
                     <input
+                        id="edit-brand"
                         type="text"
                         bind:value={formData.brand}
                         placeholder="e.g., Nike, Adidas..."
@@ -243,6 +258,7 @@
                 <!-- Occasions (Multi-select) -->
                 <div>
                     <MultiSelect
+                        id="edit-occasions"
                         label="Occasions (Optional)"
                         required={false}
                         options={masterData.occasions}
@@ -254,7 +270,10 @@
 
                 <!-- Description -->
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">
+                    <label
+                        for="edit-description"
+                        class="block text-sm font-medium text-gray-700 mb-1"
+                    >
                         Description <span class="text-red-500">*</span>
                     </label>
                     <textarea

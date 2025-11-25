@@ -1,13 +1,16 @@
 <script lang="ts">
-	export let value: string = '#000000';
-	export let label: string = 'Color';
+	export let value: string = "#000000";
+	export let label: string = "Color";
 	export let required: boolean = false;
+	export let id: string =
+		"color-picker-" + Math.random().toString(36).substr(2, 9);
 
 	// Validate hex color format
 	$: isValidHex = !value || /^#[0-9A-Fa-f]{6}$/.test(value);
 
 	// Ensure value always starts with # for color input
-	$: displayValue = value && !value.startsWith('#') ? `#${value}` : value || '#000000';
+	$: displayValue =
+		value && !value.startsWith("#") ? `#${value}` : value || "#000000";
 
 	function handleTextInput(e: Event) {
 		const input = e.target as HTMLInputElement;
@@ -21,7 +24,7 @@
 </script>
 
 <div class="space-y-2">
-	<label class="block text-sm font-medium text-gray-700">
+	<label for={id} class="block text-sm font-medium text-gray-700">
 		{label}
 		{#if required}
 			<span class="text-red-500">*</span>
@@ -32,6 +35,7 @@
 		<!-- Text input for hex code -->
 		<div class="flex-1">
 			<input
+				{id}
 				type="text"
 				{value}
 				on:input={handleTextInput}
@@ -56,7 +60,7 @@
 		<div
 			class="w-12 h-10 border border-gray-300 rounded flex items-center justify-center"
 			style="background-color: {isValidHex ? value : '#ffffff'}"
-			title={isValidHex ? value : 'Invalid color'}
+			title={isValidHex ? value : "Invalid color"}
 		>
 			{#if !isValidHex && value}
 				<span class="text-xs text-red-500">✗</span>
@@ -73,6 +77,8 @@
 
 	<!-- Helper text -->
 	{#if isValidHex || !value}
-		<p class="text-xs text-gray-500">Enter hex color code or use the color picker</p>
+		<p class="text-xs text-gray-500">
+			Enter hex color code or use the color picker
+		</p>
 	{/if}
 </div>
