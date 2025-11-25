@@ -1,23 +1,26 @@
 <script lang="ts">
-	import { invalidateAll, goto } from '$app/navigation';
-	import { Edit, History } from 'lucide-svelte';
-	import Modal from '$lib/components/Modal.svelte';
-	import { toast } from '$lib/stores/toast';
-	import type { PageData } from './$types';
+	import { invalidateAll, goto } from "$app/navigation";
+	import { Edit, History } from "lucide-svelte";
+	import Modal from "$lib/components/Modal.svelte";
+	import { toast } from "$lib/stores/toast";
+	import type { PageData } from "./$types";
 
 	export let data: PageData;
 
 	let showModal = false;
 	let editingPrompt: any | null = null;
 	let formData = {
-		name: '',
-		description: '',
-		type: 'item_analysis' as 'item_analysis' | 'item_improvement' | 'outfit_recommendation',
-		content: '',
+		name: "",
+		description: "",
+		type: "item_analysis" as
+			| "item_analysis"
+			| "item_improvement"
+			| "outfit_recommendation",
+		content: "",
 		template_variables: [] as string[],
 		is_active: true, // Always set to active since there's only one per type
 		tags: [] as string[],
-		change_summary: ''
+		change_summary: "",
 	};
 	let loading = false;
 	let seedingDefaults = false;
@@ -26,41 +29,43 @@
 	$: hasPrompts = data.hasPrompts;
 
 	const promptTypes: Array<{
-		key: 'item_analysis' | 'item_improvement' | 'outfit_recommendation';
+		key: "item_analysis" | "item_improvement" | "outfit_recommendation";
 		label: string;
 		description: string;
 	}> = [
 		{
-			key: 'item_analysis',
-			label: 'Item Analysis',
-			description: 'Analyze fashion items using GPT 5.1 Nano'
+			key: "item_analysis",
+			label: "Item Analysis",
+			description: "Analyze fashion items using GPT 5.1 Nano",
 		},
 		{
-			key: 'item_improvement',
-			label: 'Item Improvement',
-			description: 'Improve item images using GPT-Image-1'
+			key: "item_improvement",
+			label: "Item Improvement",
+			description: "Improve item images using GPT-Image-1",
 		},
 		{
-			key: 'outfit_recommendation',
-			label: 'Outfit Recommendation',
-			description: 'Generate outfit combinations using GPT 5.1 Nano'
-		}
+			key: "outfit_recommendation",
+			label: "Outfit Recommendation",
+			description: "Generate outfit combinations using GPT 5.1 Nano",
+		},
 	];
 
 	async function seedDefaultPrompts() {
 		seedingDefaults = true;
 		try {
-			const response = await fetch('/api/prompts/seed-defaults', {
-				method: 'POST'
+			const response = await fetch("/api/prompts/seed-defaults", {
+				method: "POST",
 			});
 
 			const result = await response.json();
 
 			if (!response.ok) {
-				throw new Error(result.error || 'Failed to seed default prompts');
+				throw new Error(
+					result.error || "Failed to seed default prompts",
+				);
 			}
 
-			toast.success('Default prompts created successfully!');
+			toast.success("Default prompts created successfully!");
 			await invalidateAll();
 		} catch (error: any) {
 			toast.error(error.message);
@@ -73,43 +78,45 @@
 		editingPrompt = prompt;
 		formData = {
 			name: prompt.name,
-			description: prompt.description || '',
+			description: prompt.description || "",
 			type: prompt.type,
 			content: prompt.content,
 			template_variables: prompt.template_variables || [],
 			is_active: true,
 			tags: prompt.tags || [],
-			change_summary: ''
+			change_summary: "",
 		};
 		showModal = true;
 	}
 
-	function openSetupModal(type: 'item_analysis' | 'item_improvement' | 'outfit_recommendation') {
+	function openSetupModal(
+		type: "item_analysis" | "item_improvement" | "outfit_recommendation",
+	) {
 		editingPrompt = null;
 		const typeDefaults = {
 			item_analysis: {
-				name: 'Item Analysis Prompt',
-				template_variables: []
+				name: "Item Analysis Prompt",
+				template_variables: [],
 			},
 			item_improvement: {
-				name: 'Item Improvement Prompt',
-				template_variables: []
+				name: "Item Improvement Prompt",
+				template_variables: [],
 			},
 			outfit_recommendation: {
-				name: 'Outfit Recommendation Prompt',
-				template_variables: ['occasion', 'note']
-			}
+				name: "Outfit Recommendation Prompt",
+				template_variables: ["occasion", "note"],
+			},
 		};
 
 		formData = {
 			name: typeDefaults[type].name,
-			description: '',
+			description: "",
 			type,
-			content: '',
+			content: "",
 			template_variables: typeDefaults[type].template_variables,
 			is_active: true,
 			tags: [],
-			change_summary: ''
+			change_summary: "",
 		};
 		showModal = true;
 	}
@@ -117,21 +124,25 @@
 	async function handleSubmit() {
 		loading = true;
 		try {
-			const url = editingPrompt ? `/api/prompts/${editingPrompt.id}` : '/api/prompts';
+			const url = editingPrompt
+				? `/api/prompts/${editingPrompt.id}`
+				: "/api/prompts";
 
 			const response = await fetch(url, {
-				method: editingPrompt ? 'PUT' : 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify(formData)
+				method: editingPrompt ? "PUT" : "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify(formData),
 			});
 
 			const result = await response.json();
 
 			if (!response.ok) {
-				throw new Error(result.error || 'An error occurred');
+				throw new Error(result.error || "An error occurred");
 			}
 
-			toast.success(editingPrompt ? 'Prompt updated!' : 'Prompt created!');
+			toast.success(
+				editingPrompt ? "Prompt updated!" : "Prompt created!",
+			);
 			showModal = false;
 			await invalidateAll();
 		} catch (error: any) {
@@ -149,10 +160,13 @@
 		const diffHours = Math.floor(diffMins / 60);
 		const diffDays = Math.floor(diffHours / 24);
 
-		if (diffMins < 1) return 'Just now';
-		if (diffMins < 60) return `${diffMins} min${diffMins > 1 ? 's' : ''} ago`;
-		if (diffHours < 24) return `${diffHours} hr${diffHours > 1 ? 's' : ''} ago`;
-		if (diffDays < 7) return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+		if (diffMins < 1) return "Just now";
+		if (diffMins < 60)
+			return `${diffMins} min${diffMins > 1 ? "s" : ""} ago`;
+		if (diffHours < 24)
+			return `${diffHours} hr${diffHours > 1 ? "s" : ""} ago`;
+		if (diffDays < 7)
+			return `${diffDays} day${diffDays > 1 ? "s" : ""} ago`;
 
 		return date.toLocaleDateString();
 	}
@@ -166,17 +180,22 @@
 	<title>Prompt Management - Wardope AI</title>
 </svelte:head>
 
-<div class="p-8">
+<div class="p-4 md:p-8">
 	{#if !hasPrompts}
 		<!-- Setup Required CTA -->
 		<div class="flex flex-col items-center justify-center min-h-[60vh]">
 			<div class="text-center max-w-md">
-				<div class="w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-6">
+				<div
+					class="w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-6"
+				>
 					<Edit class="w-8 h-8 text-indigo-600" />
 				</div>
-				<h2 class="text-xl font-semibold text-gray-900 mb-2">Welcome to Prompt Management</h2>
+				<h2 class="text-xl font-semibold text-gray-900 mb-2">
+					Welcome to Prompt Management
+				</h2>
 				<p class="text-gray-600 mb-6">
-					Create default AI prompts to enable item analysis, image improvement, and outfit recommendations.
+					Create default AI prompts to enable item analysis, image
+					improvement, and outfit recommendations.
 				</p>
 				<button
 					on:click={seedDefaultPrompts}
@@ -196,79 +215,103 @@
 		<div class="mb-8">
 			<h1 class="text-2xl font-bold text-gray-900">Prompt Management</h1>
 			<p class="text-gray-600 mt-1 text-sm">
-				Manage AI prompts for item analysis, image improvement, and outfit recommendations. Each edit
-				creates a new version.
+				Manage AI prompts for item analysis, image improvement, and
+				outfit recommendations. Each edit creates a new version.
 			</p>
 		</div>
 
 		<!-- Prompts List (Fixed 3 Cards) -->
 		<div class="space-y-4">
-		{#each promptTypes as promptType}
-			{@const prompt = prompts[promptType.key]}
-			<div class="bg-white border border-gray-200 rounded-lg p-6">
-				<div class="flex items-start justify-between">
-					<div class="flex-1">
-						<div class="flex items-center gap-3 mb-2">
-							<h2 class="text-lg font-semibold text-gray-900">{promptType.label}</h2>
-							{#if prompt}
-								<span class="px-2 py-0.5 text-xs font-medium bg-indigo-100 text-indigo-700 rounded">
-									v{prompt.version}
-								</span>
-							{:else}
-								<span class="px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-600 rounded">
-									Not configured
-								</span>
-							{/if}
-						</div>
-						<p class="text-sm text-gray-600 mb-3">{promptType.description}</p>
-						{#if prompt}
-							<div class="flex items-center gap-4 text-xs text-gray-500">
-								<span>Last edited: {formatDate(prompt.updated_at)}</span>
-								{#if prompt.usage_count > 0}
-									<span>•</span>
-									<span>{prompt.usage_count} uses</span>
+			{#each promptTypes as promptType}
+				{@const prompt = prompts[promptType.key]}
+				<div class="bg-white border border-gray-200 rounded-lg p-6">
+					<div
+						class="flex flex-col sm:flex-row sm:items-start justify-between gap-4"
+					>
+						<div class="flex-1">
+							<div class="flex items-center gap-3 mb-2">
+								<h2 class="text-lg font-semibold text-gray-900">
+									{promptType.label}
+								</h2>
+								{#if prompt}
+									<span
+										class="px-2 py-0.5 text-xs font-medium bg-indigo-100 text-indigo-700 rounded"
+									>
+										v{prompt.version}
+									</span>
+								{:else}
+									<span
+										class="px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-600 rounded"
+									>
+										Not configured
+									</span>
 								{/if}
 							</div>
-						{/if}
-					</div>
-					<div class="flex items-center gap-2 ml-4">
-						{#if prompt}
-							<button
-								on:click={() => viewHistory(prompt.id)}
-								class="inline-flex items-center gap-1.5 px-3 py-2 text-sm text-gray-700 bg-gray-100 rounded hover:bg-gray-200"
-							>
-								<History class="w-4 h-4" />
-								<span>History</span>
-							</button>
-							<button
-								on:click={() => openEditModal(prompt)}
-								class="inline-flex items-center gap-1.5 px-3 py-2 text-sm text-white bg-indigo-600 rounded hover:bg-indigo-700"
-							>
-								<Edit class="w-4 h-4" />
-								<span>Edit</span>
-							</button>
-						{:else}
-							<button
-								on:click={() => openSetupModal(promptType.key)}
-								class="px-3 py-2 text-sm text-white bg-indigo-600 rounded hover:bg-indigo-700"
-							>
-								Setup Prompt
-							</button>
-						{/if}
+							<p class="text-sm text-gray-600 mb-3">
+								{promptType.description}
+							</p>
+							{#if prompt}
+								<div
+									class="flex items-center gap-4 text-xs text-gray-500"
+								>
+									<span
+										>Last edited: {formatDate(
+											prompt.updated_at,
+										)}</span
+									>
+									{#if prompt.usage_count > 0}
+										<span>•</span>
+										<span>{prompt.usage_count} uses</span>
+									{/if}
+								</div>
+							{/if}
+						</div>
+						<div class="flex items-center gap-2 w-full sm:w-auto">
+							{#if prompt}
+								<button
+									on:click={() => viewHistory(prompt.id)}
+									class="flex-1 sm:flex-none inline-flex justify-center items-center gap-1.5 px-3 py-2 text-sm text-gray-700 bg-gray-100 rounded hover:bg-gray-200"
+								>
+									<History class="w-4 h-4" />
+									<span>History</span>
+								</button>
+								<button
+									on:click={() => openEditModal(prompt)}
+									class="flex-1 sm:flex-none inline-flex justify-center items-center gap-1.5 px-3 py-2 text-sm text-white bg-indigo-600 rounded hover:bg-indigo-700"
+								>
+									<Edit class="w-4 h-4" />
+									<span>Edit</span>
+								</button>
+							{:else}
+								<button
+									on:click={() =>
+										openSetupModal(promptType.key)}
+									class="w-full sm:w-auto px-3 py-2 text-sm text-white bg-indigo-600 rounded hover:bg-indigo-700"
+								>
+									Setup Prompt
+								</button>
+							{/if}
+						</div>
 					</div>
 				</div>
-			</div>
-		{/each}
+			{/each}
 		</div>
 	{/if}
 </div>
 
 <!-- Modal for Edit/Create -->
-<Modal bind:open={showModal} title={editingPrompt ? 'Edit Prompt' : 'Setup Prompt'} size="lg">
+<Modal
+	bind:open={showModal}
+	title={editingPrompt ? "Edit Prompt" : "Setup Prompt"}
+	size="lg"
+>
 	<form on:submit|preventDefault={handleSubmit}>
 		<div class="space-y-4">
 			<div>
-				<label for="name" class="block text-sm font-medium text-gray-700 mb-1">
+				<label
+					for="name"
+					class="block text-sm font-medium text-gray-700 mb-1"
+				>
 					Prompt Name <span class="text-red-500">*</span>
 				</label>
 				<input
@@ -283,7 +326,10 @@
 			</div>
 
 			<div>
-				<label for="description" class="block text-sm font-medium text-gray-700 mb-1">
+				<label
+					for="description"
+					class="block text-sm font-medium text-gray-700 mb-1"
+				>
 					Description
 				</label>
 				<input
@@ -297,7 +343,10 @@
 			</div>
 
 			<div>
-				<label for="content" class="block text-sm font-medium text-gray-700 mb-1">
+				<label
+					for="content"
+					class="block text-sm font-medium text-gray-700 mb-1"
+				>
 					Prompt Content <span class="text-red-500">*</span>
 				</label>
 				<textarea
@@ -313,31 +362,62 @@
 					{formData.content.length} / 10000 characters
 				</p>
 
-				{#if formData.type === 'item_analysis'}
-					<div class="mt-3 p-3 bg-gray-50 border border-gray-200 rounded text-sm">
-						<p class="font-medium text-gray-700 mb-2">Available Variables (for item_analysis):</p>
+				{#if formData.type === "item_analysis"}
+					<div
+						class="mt-3 p-3 bg-gray-50 border border-gray-200 rounded text-sm"
+					>
+						<p class="font-medium text-gray-700 mb-2">
+							Available Variables (for item_analysis):
+						</p>
 						<div class="flex flex-wrap gap-2">
-							<code class="px-2 py-1 bg-white border rounded text-xs">{'{categories}'}</code>
-							<code class="px-2 py-1 bg-white border rounded text-xs">{'{subcategories}'}</code>
-							<code class="px-2 py-1 bg-white border rounded text-xs">{'{colors}'}</code>
-							<code class="px-2 py-1 bg-white border rounded text-xs">{'{occasions}'}</code>
-							<code class="px-2 py-1 bg-white border rounded text-xs">{'{fits}'}</code>
+							<code
+								class="px-2 py-1 bg-white border rounded text-xs"
+								>{"{categories}"}</code
+							>
+							<code
+								class="px-2 py-1 bg-white border rounded text-xs"
+								>{"{subcategories}"}</code
+							>
+							<code
+								class="px-2 py-1 bg-white border rounded text-xs"
+								>{"{colors}"}</code
+							>
+							<code
+								class="px-2 py-1 bg-white border rounded text-xs"
+								>{"{occasions}"}</code
+							>
+							<code
+								class="px-2 py-1 bg-white border rounded text-xs"
+								>{"{fits}"}</code
+							>
 						</div>
 						<p class="text-xs text-gray-500 mt-2">
-							Variables will be replaced with actual master data from database before sending to AI.
+							Variables will be replaced with actual master data
+							from database before sending to AI.
 						</p>
 					</div>
 				{/if}
 
-				{#if formData.type === 'outfit_recommendation'}
-					<div class="mt-3 p-3 bg-gray-50 border border-gray-200 rounded text-sm">
-						<p class="font-medium text-gray-700 mb-2">Available Variables (for outfit_recommendation):</p>
+				{#if formData.type === "outfit_recommendation"}
+					<div
+						class="mt-3 p-3 bg-gray-50 border border-gray-200 rounded text-sm"
+					>
+						<p class="font-medium text-gray-700 mb-2">
+							Available Variables (for outfit_recommendation):
+						</p>
 						<div class="flex flex-wrap gap-2">
-							<code class="px-2 py-1 bg-white border rounded text-xs">{'{occasion}'}</code>
-							<code class="px-2 py-1 bg-white border rounded text-xs">{'{note}'}</code>
+							<code
+								class="px-2 py-1 bg-white border rounded text-xs"
+								>{"{occasion}"}</code
+							>
+							<code
+								class="px-2 py-1 bg-white border rounded text-xs"
+								>{"{note}"}</code
+							>
 						</div>
 						<p class="text-xs text-gray-500 mt-2">
-							Variables will be replaced with user-provided values when generating outfit.
+							Variables will be replaced with user-provided values
+							when generating outfit.
 						</p>
 					</div>
 				{/if}
@@ -345,7 +425,10 @@
 
 			{#if editingPrompt}
 				<div>
-					<label for="change_summary" class="block text-sm font-medium text-gray-700 mb-1">
+					<label
+						for="change_summary"
+						class="block text-sm font-medium text-gray-700 mb-1"
+					>
 						Change Summary
 					</label>
 					<input
@@ -356,7 +439,9 @@
 						class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:border-indigo-500"
 						placeholder="What did you change? (optional)"
 					/>
-					<p class="text-xs text-gray-500 mt-1">Helps track prompt evolution over time</p>
+					<p class="text-xs text-gray-500 mt-1">
+						Helps track prompt evolution over time
+					</p>
 				</div>
 			{/if}
 		</div>
@@ -376,7 +461,11 @@
 			disabled={loading}
 			class="px-4 py-2 text-sm bg-indigo-600 text-white rounded hover:bg-indigo-700 disabled:opacity-50"
 		>
-			{loading ? 'Saving...' : editingPrompt ? 'Save Changes' : 'Create Prompt'}
+			{loading
+				? "Saving..."
+				: editingPrompt
+					? "Save Changes"
+					: "Create Prompt"}
 		</button>
 	</svelte:fragment>
 </Modal>

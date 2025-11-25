@@ -254,20 +254,80 @@
 		const x = (event.clientX - rect.left) * scaleX;
 		const y = (event.clientY - rect.top) * scaleY;
 
+		handleInputStart(x, y);
+	}
+
+	function handleCanvasMouseMove(event: MouseEvent) {
+		if (!canvasElement) return;
+
+		const rect = canvasElement.getBoundingClientRect();
+		const scaleX = CANVAS_WIDTH / rect.width;
+		const scaleY = CANVAS_HEIGHT / rect.height;
+		const x = (event.clientX - rect.left) * scaleX;
+		const y = (event.clientY - rect.top) * scaleY;
+
+		handleInputMove(x, y);
+	}
+
+	function handleCanvasMouseUp() {
+		isDragging = false;
+		isResizing = false;
+		isRotating = false;
+	}
+
+	function handleCanvasTouchStart(event: TouchEvent) {
+		if (!canvasElement) return;
+		event.preventDefault(); // Prevent scrolling
+
+		const touch = event.touches[0];
+		const rect = canvasElement.getBoundingClientRect();
+		const scaleX = CANVAS_WIDTH / rect.width;
+		const scaleY = CANVAS_HEIGHT / rect.height;
+		const x = (touch.clientX - rect.left) * scaleX;
+		const y = (touch.clientY - rect.top) * scaleY;
+
+		// Reuse logic from handleCanvasClick (mousedown)
+		// We can refactor to a common function, but for now let's duplicate the logic or simulate mouse event
+		// Simulating mouse event is cleaner if we extract the logic
+		handleInputStart(x, y);
+	}
+
+	function handleCanvasTouchMove(event: TouchEvent) {
+		if (!canvasElement) return;
+		event.preventDefault();
+
+		const touch = event.touches[0];
+		const rect = canvasElement.getBoundingClientRect();
+		const scaleX = CANVAS_WIDTH / rect.width;
+		const scaleY = CANVAS_HEIGHT / rect.height;
+		const x = (touch.clientX - rect.left) * scaleX;
+		const y = (touch.clientY - rect.top) * scaleY;
+
+		handleInputMove(x, y);
+	}
+
+	function handleCanvasTouchEnd(event: TouchEvent) {
+		event.preventDefault();
+		handleCanvasMouseUp();
+	}
+
+	// Refactored input handlers to support both mouse and touch
+	function handleInputStart(x: number, y: number) {
 		if (selectedItemId) {
 			const selectedItem = canvasItems.find(
 				(i) => i.id === selectedItemId,
 			);
 			if (selectedItem) {
 				const handleSize = 10;
-				const tolerance = handleSize;
+				const tolerance = handleSize * 2; // Larger tolerance for touch
 
 				const centerX = selectedItem.x + selectedItem.width / 2;
 				const rotateHandleY = selectedItem.y - 30;
 				const distToRotate = Math.sqrt(
 					Math.pow(x - centerX, 2) + Math.pow(y - rotateHandleY, 2),
 				);
-				if (distToRotate <= 10) {
+				if (distToRotate <= 20) {
+					// Larger hit area
 					isRotating = true;
 					dragStartX = x;
 					dragStartY = y;
@@ -332,15 +392,7 @@
 		renderCanvas();
 	}
 
-	function handleCanvasMouseMove(event: MouseEvent) {
-		if (!canvasElement) return;
-
-		const rect = canvasElement.getBoundingClientRect();
-		const scaleX = CANVAS_WIDTH / rect.width;
-		const scaleY = CANVAS_HEIGHT / rect.height;
-		const x = (event.clientX - rect.left) * scaleX;
-		const y = (event.clientY - rect.top) * scaleY;
-
+	function handleInputMove(x: number, y: number) {
 		const item = canvasItems.find((i) => i.id === selectedItemId);
 		if (!item) return;
 
@@ -389,12 +441,6 @@
 			);
 			renderCanvas();
 		}
-	}
-
-	function handleCanvasMouseUp() {
-		isDragging = false;
-		isResizing = false;
-		isRotating = false;
 	}
 
 	function deleteSelectedItem() {
@@ -906,7 +952,11 @@
 								on:mousemove={handleCanvasMouseMove}
 								on:mouseup={handleCanvasMouseUp}
 								on:mouseleave={handleCanvasMouseUp}
-								class="w-full h-auto max-h-[800px] cursor-pointer"
+								on:touchstart={handleCanvasTouchStart}
+								on:touchmove={handleCanvasTouchMove}
+								on:touchend={handleCanvasTouchEnd}
+								on:touchcancel={handleCanvasTouchEnd}
+								class="w-full h-auto max-h-[800px] cursor-pointer touch-none"
 								style="display: block;"
 							></canvas>
 						</div>

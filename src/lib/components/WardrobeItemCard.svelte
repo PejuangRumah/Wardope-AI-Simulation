@@ -1,34 +1,42 @@
 <script lang="ts">
-	import { Trash2, Edit } from 'lucide-svelte';
-	import type { WardrobeItem } from '$lib/types/wardrobe';
+	import { Trash2, Edit } from "lucide-svelte";
+	import type { WardrobeItem } from "$lib/types/wardrobe";
 
 	export let item: WardrobeItem;
 
 	async function handleDelete() {
-		if (!confirm(`Delete ${item.subcategory}? This action cannot be undone.`)) {
+		if (
+			!confirm(
+				`Delete ${item.subcategory}? This action cannot be undone.`,
+			)
+		) {
 			return;
 		}
 
 		try {
 			const response = await fetch(`/api/wardrobe-items/${item.id}`, {
-				method: 'DELETE'
+				method: "DELETE",
 			});
 
 			if (!response.ok) {
 				const error = await response.json();
-				throw new Error(error.error || 'Failed to delete item');
+				throw new Error(error.error || "Failed to delete item");
 			}
 
 			// Reload page to update list
 			location.reload();
 		} catch (error) {
-			console.error('Delete error:', error);
-			alert(`Failed to delete item: ${error instanceof Error ? error.message : 'Unknown error'}`);
+			console.error("Delete error:", error);
+			alert(
+				`Failed to delete item: ${error instanceof Error ? error.message : "Unknown error"}`,
+			);
 		}
 	}
 </script>
 
-<div class="group relative border border-gray-200 rounded-lg overflow-hidden hover:shadow-xl transition-all duration-300 bg-white">
+<div
+	class="group relative border border-gray-200 rounded-lg overflow-hidden hover:shadow-xl transition-all duration-300 bg-white"
+>
 	<!-- Image -->
 	<div class="aspect-square bg-gray-100 relative overflow-hidden">
 		<img
@@ -37,8 +45,10 @@
 			class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
 		/>
 
-		<!-- Action buttons overlay (show on hover) -->
-		<div class="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+		<!-- Action buttons overlay (show on hover on desktop, always on mobile) -->
+		<div
+			class="absolute top-2 right-2 flex gap-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-200"
+		>
 			<button
 				type="button"
 				on:click|stopPropagation={handleDelete}

@@ -1,16 +1,16 @@
 <script lang="ts">
-	import { invalidateAll } from '$app/navigation';
-	import { Plus, Edit, Trash2 } from 'lucide-svelte';
-	import Modal from '$lib/components/Modal.svelte';
-	import { toast } from '$lib/stores/toast';
-	import type { PageData } from './$types';
-	import type { FitDB } from '$lib/types/database';
+	import { invalidateAll } from "$app/navigation";
+	import { Plus, Edit, Trash2 } from "lucide-svelte";
+	import Modal from "$lib/components/Modal.svelte";
+	import { toast } from "$lib/stores/toast";
+	import type { PageData } from "./$types";
+	import type { FitDB } from "$lib/types/database";
 
 	export let data: PageData;
 
 	let showModal = false;
 	let editingFit: FitDB | null = null;
-	let formData = { name: '', category_id: '', display_order: 0 };
+	let formData = { name: "", category_id: "", display_order: 0 };
 	let loading = false;
 
 	$: fits = data.fits;
@@ -19,8 +19,11 @@
 	function openCreateModal() {
 		editingFit = null;
 		// Auto-fill display order: get max + 1, or 0 if empty
-		const maxOrder = fits.length > 0 ? Math.max(...fits.map((f) => f.display_order)) : -1;
-		formData = { name: '', category_id: '', display_order: maxOrder + 1 };
+		const maxOrder =
+			fits.length > 0
+				? Math.max(...fits.map((f) => f.display_order))
+				: -1;
+		formData = { name: "", category_id: "", display_order: maxOrder + 1 };
 		showModal = true;
 	}
 
@@ -29,7 +32,7 @@
 		formData = {
 			name: fit.name,
 			category_id: fit.category_id,
-			display_order: fit.display_order
+			display_order: fit.display_order,
 		};
 		showModal = true;
 	}
@@ -37,21 +40,23 @@
 	async function handleSubmit() {
 		loading = true;
 		try {
-			const url = editingFit ? `/api/master-data/fits/${editingFit.id}` : '/api/master-data/fits';
+			const url = editingFit
+				? `/api/master-data/fits/${editingFit.id}`
+				: "/api/master-data/fits";
 
 			const response = await fetch(url, {
-				method: editingFit ? 'PUT' : 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify(formData)
+				method: editingFit ? "PUT" : "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify(formData),
 			});
 
 			const result = await response.json();
 
 			if (!response.ok) {
-				throw new Error(result.error || 'An error occurred');
+				throw new Error(result.error || "An error occurred");
 			}
 
-			toast.success(editingFit ? 'Fit updated!' : 'Fit created!');
+			toast.success(editingFit ? "Fit updated!" : "Fit created!");
 			showModal = false;
 			await invalidateAll();
 		} catch (error: any) {
@@ -66,7 +71,7 @@
 
 		try {
 			const response = await fetch(`/api/master-data/fits/${id}`, {
-				method: 'DELETE'
+				method: "DELETE",
 			});
 
 			const result = await response.json();
@@ -75,7 +80,7 @@
 				throw new Error(result.error);
 			}
 
-			toast.success('Fit deleted!');
+			toast.success("Fit deleted!");
 			await invalidateAll();
 		} catch (error: any) {
 			toast.error(error.message);
@@ -87,7 +92,7 @@
 	<title>Fits - Wardope AI</title>
 </svelte:head>
 
-<div class="p-8">
+<div class="p-4 md:p-8">
 	<!-- Page Header -->
 	<div class="mb-8">
 		<h1 class="text-2xl font-bold text-gray-900">Fits</h1>
@@ -106,7 +111,7 @@
 	</div>
 
 	<!-- Table -->
-	<div class="bg-white rounded-lg border border-gray-200 overflow-hidden">
+	<div class="bg-white rounded-lg border border-gray-200 overflow-x-auto">
 		{#if fits.length === 0}
 			<div class="p-8 text-center text-gray-500">
 				<p>No fits yet. Click "Add Fit" to create one.</p>
@@ -140,16 +145,24 @@
 				<tbody class="bg-white divide-y divide-gray-200">
 					{#each fits as fit (fit.id)}
 						<tr class="hover:bg-gray-50">
-							<td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+							<td
+								class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900"
+							>
 								{fit.name}
 							</td>
-							<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-								{fit.categories?.name || 'N/A'}
+							<td
+								class="px-6 py-4 whitespace-nowrap text-sm text-gray-500"
+							>
+								{fit.categories?.name || "N/A"}
 							</td>
-							<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+							<td
+								class="px-6 py-4 whitespace-nowrap text-sm text-gray-500"
+							>
 								{fit.display_order}
 							</td>
-							<td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+							<td
+								class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium"
+							>
 								<button
 									on:click={() => openEditModal(fit)}
 									class="text-indigo-600 hover:text-indigo-900 mr-4"
@@ -158,7 +171,8 @@
 									<Edit class="w-4 h-4 inline" />
 								</button>
 								<button
-									on:click={() => handleDelete(fit.id, fit.name)}
+									on:click={() =>
+										handleDelete(fit.id, fit.name)}
 									class="text-red-600 hover:text-red-900"
 									title="Delete"
 								>
@@ -174,11 +188,14 @@
 </div>
 
 <!-- Modal -->
-<Modal bind:open={showModal} title={editingFit ? 'Edit Fit' : 'Add Fit'}>
+<Modal bind:open={showModal} title={editingFit ? "Edit Fit" : "Add Fit"}>
 	<form on:submit|preventDefault={handleSubmit}>
 		<div class="space-y-4">
 			<div>
-				<label for="category" class="block text-sm font-medium text-gray-700 mb-1">
+				<label
+					for="category"
+					class="block text-sm font-medium text-gray-700 mb-1"
+				>
 					Category <span class="text-red-500">*</span>
 				</label>
 				<select
@@ -192,11 +209,16 @@
 						<option value={category.id}>{category.name}</option>
 					{/each}
 				</select>
-				<p class="text-xs text-gray-500 mt-1">Choose which category this fit belongs to</p>
+				<p class="text-xs text-gray-500 mt-1">
+					Choose which category this fit belongs to
+				</p>
 			</div>
 
 			<div>
-				<label for="name" class="block text-sm font-medium text-gray-700 mb-1">
+				<label
+					for="name"
+					class="block text-sm font-medium text-gray-700 mb-1"
+				>
 					Fit Name <span class="text-red-500">*</span>
 				</label>
 				<input
@@ -211,7 +233,10 @@
 			</div>
 
 			<div>
-				<label for="display_order" class="block text-sm font-medium text-gray-700 mb-1">
+				<label
+					for="display_order"
+					class="block text-sm font-medium text-gray-700 mb-1"
+				>
 					Display Order
 				</label>
 				<input
@@ -221,7 +246,9 @@
 					min="0"
 					class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
 				/>
-				<p class="text-xs text-gray-500 mt-1">Lower numbers appear first</p>
+				<p class="text-xs text-gray-500 mt-1">
+					Lower numbers appear first
+				</p>
 			</div>
 		</div>
 	</form>
@@ -240,7 +267,7 @@
 			disabled={loading}
 			class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors disabled:opacity-50"
 		>
-			{loading ? 'Saving...' : 'Save'}
+			{loading ? "Saving..." : "Save"}
 		</button>
 	</svelte:fragment>
 </Modal>

@@ -1,14 +1,23 @@
 <script lang="ts">
-	import { page } from '$app/stores';
-	import { Shirt, Sparkles, Database, ChevronDown, ChevronRight, Menu, FileText } from 'lucide-svelte';
-	import { sidebarCollapsed } from '$lib/stores/sidebar';
+	import { page } from "$app/stores";
+	import {
+		Shirt,
+		Sparkles,
+		Database,
+		ChevronDown,
+		ChevronRight,
+		Menu,
+		FileText,
+	} from "lucide-svelte";
+	import { sidebarCollapsed } from "$lib/stores/sidebar";
 
 	let masterDataExpanded = false;
 
 	// Check if current path matches
 	$: currentPath = $page.url.pathname;
-	$: isActive = (path: string) => currentPath === path || currentPath.startsWith(path + '/');
-	$: isMasterDataActive = currentPath.startsWith('/master-data');
+	$: isActive = (path: string) =>
+		currentPath === path || currentPath.startsWith(path + "/");
+	$: isMasterDataActive = currentPath.startsWith("/master-data");
 
 	// Auto-expand master data if any submenu is active
 	$: if (isMasterDataActive && !masterDataExpanded) {
@@ -25,17 +34,43 @@
 	}
 </script>
 
+<!-- Mobile Overlay -->
+{#if !$sidebarCollapsed}
+	<div
+		class="fixed inset-0 bg-black/50 z-40 md:hidden"
+		on:click={sidebarCollapsed.toggle}
+		role="button"
+		tabindex="0"
+		on:keydown={(e) => e.key === "Escape" && sidebarCollapsed.toggle()}
+	></div>
+{/if}
+
 <aside
-	class="bg-gray-50 border-r border-gray-200 flex flex-col transition-all duration-300"
+	class="bg-gray-50 border-r border-gray-200 flex flex-col transition-all duration-300 fixed md:relative z-50 h-full"
 	class:w-64={!$sidebarCollapsed}
-	class:w-16={$sidebarCollapsed}
+	class:md:w-16={$sidebarCollapsed}
+	class:-translate-x-full={$sidebarCollapsed}
+	class:md:translate-x-0={$sidebarCollapsed}
 >
-	<!-- Toggle Button -->
-	<div class="px-4 py-4 border-b border-gray-200">
+	<!-- Toggle Button (Desktop only) -->
+	<div class="px-4 py-4 border-b border-gray-200 hidden md:block">
 		<button
 			on:click={sidebarCollapsed.toggle}
 			class="w-full flex items-center justify-center p-2 rounded-lg text-gray-700 hover:bg-gray-200 transition-colors"
-			title={$sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+			title={$sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+		>
+			<Menu class="w-5 h-5" />
+		</button>
+	</div>
+
+	<!-- Mobile Close Button -->
+	<div
+		class="px-4 py-4 border-b border-gray-200 md:hidden flex justify-between items-center"
+	>
+		<span class="font-semibold text-gray-900">Menu</span>
+		<button
+			on:click={sidebarCollapsed.toggle}
+			class="p-2 rounded-lg text-gray-700 hover:bg-gray-200 transition-colors"
 		>
 			<Menu class="w-5 h-5" />
 		</button>
@@ -49,11 +84,11 @@
 			class:px-4={!$sidebarCollapsed}
 			class:px-2={$sidebarCollapsed}
 			class:justify-center={$sidebarCollapsed}
-			class:bg-indigo-50={isActive('/wardrobe')}
-			class:text-indigo-700={isActive('/wardrobe')}
-			class:text-gray-700={!isActive('/wardrobe')}
-			class:hover:bg-gray-100={!isActive('/wardrobe')}
-			title={$sidebarCollapsed ? 'Wardrobe' : ''}
+			class:bg-indigo-50={isActive("/wardrobe")}
+			class:text-indigo-700={isActive("/wardrobe")}
+			class:text-gray-700={!isActive("/wardrobe")}
+			class:hover:bg-gray-100={!isActive("/wardrobe")}
+			title={$sidebarCollapsed ? "Wardrobe" : ""}
 		>
 			<Shirt class="w-5 h-5 flex-shrink-0" />
 			{#if !$sidebarCollapsed}
@@ -68,11 +103,11 @@
 			class:px-4={!$sidebarCollapsed}
 			class:px-2={$sidebarCollapsed}
 			class:justify-center={$sidebarCollapsed}
-			class:bg-indigo-50={isActive('/outfit-recommendation')}
-			class:text-indigo-700={isActive('/outfit-recommendation')}
-			class:text-gray-700={!isActive('/outfit-recommendation')}
-			class:hover:bg-gray-100={!isActive('/outfit-recommendation')}
-			title={$sidebarCollapsed ? 'Outfit Recommendation' : ''}
+			class:bg-indigo-50={isActive("/outfit-recommendation")}
+			class:text-indigo-700={isActive("/outfit-recommendation")}
+			class:text-gray-700={!isActive("/outfit-recommendation")}
+			class:hover:bg-gray-100={!isActive("/outfit-recommendation")}
+			title={$sidebarCollapsed ? "Outfit Recommendation" : ""}
 		>
 			<Sparkles class="w-5 h-5 flex-shrink-0" />
 			{#if !$sidebarCollapsed}
@@ -87,11 +122,11 @@
 			class:px-4={!$sidebarCollapsed}
 			class:px-2={$sidebarCollapsed}
 			class:justify-center={$sidebarCollapsed}
-			class:bg-indigo-50={isActive('/prompt-management')}
-			class:text-indigo-700={isActive('/prompt-management')}
-			class:text-gray-700={!isActive('/prompt-management')}
-			class:hover:bg-gray-100={!isActive('/prompt-management')}
-			title={$sidebarCollapsed ? 'Prompt Management' : ''}
+			class:bg-indigo-50={isActive("/prompt-management")}
+			class:text-indigo-700={isActive("/prompt-management")}
+			class:text-gray-700={!isActive("/prompt-management")}
+			class:hover:bg-gray-100={!isActive("/prompt-management")}
+			title={$sidebarCollapsed ? "Prompt Management" : ""}
 		>
 			<FileText class="w-5 h-5 flex-shrink-0" />
 			{#if !$sidebarCollapsed}
@@ -144,50 +179,60 @@
 				<a
 					href="/master-data/categories"
 					class="block px-4 py-2 rounded-lg text-sm transition-colors"
-					class:bg-indigo-50={isActive('/master-data/categories')}
-					class:text-indigo-700={isActive('/master-data/categories')}
-					class:text-gray-600={!isActive('/master-data/categories')}
-					class:hover:bg-gray-100={!isActive('/master-data/categories')}
+					class:bg-indigo-50={isActive("/master-data/categories")}
+					class:text-indigo-700={isActive("/master-data/categories")}
+					class:text-gray-600={!isActive("/master-data/categories")}
+					class:hover:bg-gray-100={!isActive(
+						"/master-data/categories",
+					)}
 				>
 					Categories
 				</a>
 				<a
 					href="/master-data/subcategories"
 					class="block px-4 py-2 rounded-lg text-sm transition-colors"
-					class:bg-indigo-50={isActive('/master-data/subcategories')}
-					class:text-indigo-700={isActive('/master-data/subcategories')}
-					class:text-gray-600={!isActive('/master-data/subcategories')}
-					class:hover:bg-gray-100={!isActive('/master-data/subcategories')}
+					class:bg-indigo-50={isActive("/master-data/subcategories")}
+					class:text-indigo-700={isActive(
+						"/master-data/subcategories",
+					)}
+					class:text-gray-600={!isActive(
+						"/master-data/subcategories",
+					)}
+					class:hover:bg-gray-100={!isActive(
+						"/master-data/subcategories",
+					)}
 				>
 					Subcategories
 				</a>
 				<a
 					href="/master-data/colors"
 					class="block px-4 py-2 rounded-lg text-sm transition-colors"
-					class:bg-indigo-50={isActive('/master-data/colors')}
-					class:text-indigo-700={isActive('/master-data/colors')}
-					class:text-gray-600={!isActive('/master-data/colors')}
-					class:hover:bg-gray-100={!isActive('/master-data/colors')}
+					class:bg-indigo-50={isActive("/master-data/colors")}
+					class:text-indigo-700={isActive("/master-data/colors")}
+					class:text-gray-600={!isActive("/master-data/colors")}
+					class:hover:bg-gray-100={!isActive("/master-data/colors")}
 				>
 					Colors
 				</a>
 				<a
 					href="/master-data/occasions"
 					class="block px-4 py-2 rounded-lg text-sm transition-colors"
-					class:bg-indigo-50={isActive('/master-data/occasions')}
-					class:text-indigo-700={isActive('/master-data/occasions')}
-					class:text-gray-600={!isActive('/master-data/occasions')}
-					class:hover:bg-gray-100={!isActive('/master-data/occasions')}
+					class:bg-indigo-50={isActive("/master-data/occasions")}
+					class:text-indigo-700={isActive("/master-data/occasions")}
+					class:text-gray-600={!isActive("/master-data/occasions")}
+					class:hover:bg-gray-100={!isActive(
+						"/master-data/occasions",
+					)}
 				>
 					Occasions
 				</a>
 				<a
 					href="/master-data/fits"
 					class="block px-4 py-2 rounded-lg text-sm transition-colors"
-					class:bg-indigo-50={isActive('/master-data/fits')}
-					class:text-indigo-700={isActive('/master-data/fits')}
-					class:text-gray-600={!isActive('/master-data/fits')}
-					class:hover:bg-gray-100={!isActive('/master-data/fits')}
+					class:bg-indigo-50={isActive("/master-data/fits")}
+					class:text-indigo-700={isActive("/master-data/fits")}
+					class:text-gray-600={!isActive("/master-data/fits")}
+					class:hover:bg-gray-100={!isActive("/master-data/fits")}
 				>
 					Fits
 				</a>
@@ -198,7 +243,9 @@
 	<!-- Footer Info -->
 	{#if !$sidebarCollapsed}
 		<div class="px-4 py-4 border-t border-gray-200">
-			<p class="text-xs text-gray-500 text-center">Proof of Concept - Wardope AI</p>
+			<p class="text-xs text-gray-500 text-center">
+				Proof of Concept - Wardope AI
+			</p>
 		</div>
 	{/if}
 </aside>

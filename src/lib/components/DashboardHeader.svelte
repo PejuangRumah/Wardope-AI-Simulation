@@ -1,25 +1,41 @@
 <script lang="ts">
-	import { user } from '$lib/stores/auth';
-	import { supabase } from '$lib/supabase';
-	import { goto } from '$app/navigation';
+	import { user } from "$lib/stores/auth";
+	import { supabase } from "$lib/supabase";
+	import { goto } from "$app/navigation";
+	import { sidebarCollapsed } from "$lib/stores/sidebar";
+	import { Menu } from "lucide-svelte";
 
 	async function handleLogout() {
 		await supabase.auth.signOut();
-		goto('/login');
+		goto("/login");
 	}
 </script>
 
-<header class="bg-white border-b border-gray-200 h-16 flex items-center px-6">
+<header
+	class="bg-white border-b border-gray-200 h-16 flex items-center px-4 md:px-6"
+>
 	<div class="flex items-center justify-between w-full">
 		<!-- Logo/Brand -->
 		<div class="flex items-center gap-3">
-			<img src="/assets/logo/logo-wardope.png" alt="Wardope" class="w-8 h-8 rounded-lg" />
+			<button
+				on:click={sidebarCollapsed.toggle}
+				class="md:hidden p-2 -ml-2 text-gray-600 hover:bg-gray-100 rounded-lg"
+			>
+				<Menu class="w-5 h-5" />
+			</button>
+			<img
+				src="/assets/logo/logo-wardope.png"
+				alt="Wardope"
+				class="w-8 h-8 rounded-lg"
+			/>
 			<span class="text-lg font-semibold text-gray-900">Wardope AI</span>
 		</div>
 
 		<!-- User Info & Logout -->
 		<div class="flex items-center gap-4">
-			<span class="text-sm text-gray-600">{$user?.email}</span>
+			<span class="text-sm text-gray-600 hidden md:block"
+				>{$user?.email}</span
+			>
 			<button
 				on:click={handleLogout}
 				class="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700 transition-colors"
