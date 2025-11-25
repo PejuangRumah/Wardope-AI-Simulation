@@ -1,16 +1,16 @@
 <script lang="ts">
-	import { invalidateAll } from '$app/navigation';
-	import { Plus, Edit, Trash2 } from 'lucide-svelte';
-	import Modal from '$lib/components/Modal.svelte';
-	import { toast } from '$lib/stores/toast';
-	import type { PageData } from './$types';
-	import type { OccasionDB } from '$lib/types/database';
+	import { invalidateAll } from "$app/navigation";
+	import { Plus, Edit, Trash2 } from "lucide-svelte";
+	import Modal from "$lib/components/Modal.svelte";
+	import { toast } from "$lib/stores/toast";
+	import type { PageData } from "./$types";
+	import type { OccasionDB } from "$lib/types/database";
 
 	export let data: PageData;
 
 	let showModal = false;
 	let editingOccasion: OccasionDB | null = null;
-	let formData = { name: '', description: '', display_order: 0 };
+	let formData = { name: "", description: "", display_order: 0 };
 	let loading = false;
 
 	$: occasions = data.occasions;
@@ -18,8 +18,10 @@
 	function openCreateModal() {
 		editingOccasion = null;
 		const maxOrder =
-			occasions.length > 0 ? Math.max(...occasions.map((c) => c.display_order)) : -1;
-		formData = { name: '', description: '', display_order: maxOrder + 1 };
+			occasions.length > 0
+				? Math.max(...occasions.map((c) => c.display_order))
+				: -1;
+		formData = { name: "", description: "", display_order: maxOrder + 1 };
 		showModal = true;
 	}
 
@@ -27,8 +29,8 @@
 		editingOccasion = occasion;
 		formData = {
 			name: occasion.name,
-			description: occasion.description || '',
-			display_order: occasion.display_order
+			description: occasion.description || "",
+			display_order: occasion.display_order,
 		};
 		showModal = true;
 	}
@@ -38,21 +40,23 @@
 		try {
 			const url = editingOccasion
 				? `/api/master-data/occasions/${editingOccasion.id}`
-				: '/api/master-data/occasions';
+				: "/api/master-data/occasions";
 
 			const response = await fetch(url, {
-				method: editingOccasion ? 'PUT' : 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify(formData)
+				method: editingOccasion ? "PUT" : "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify(formData),
 			});
 
 			const result = await response.json();
 
 			if (!response.ok) {
-				throw new Error(result.error || 'An error occurred');
+				throw new Error(result.error || "An error occurred");
 			}
 
-			toast.success(editingOccasion ? 'Occasion updated!' : 'Occasion created!');
+			toast.success(
+				editingOccasion ? "Occasion updated!" : "Occasion created!",
+			);
 			showModal = false;
 			await invalidateAll();
 		} catch (error: any) {
@@ -67,7 +71,7 @@
 
 		try {
 			const response = await fetch(`/api/master-data/occasions/${id}`, {
-				method: 'DELETE'
+				method: "DELETE",
 			});
 
 			const result = await response.json();
@@ -76,7 +80,7 @@
 				throw new Error(result.error);
 			}
 
-			toast.success('Occasion deleted!');
+			toast.success("Occasion deleted!");
 			await invalidateAll();
 		} catch (error: any) {
 			toast.error(error.message);
@@ -92,7 +96,9 @@
 	<!-- Page Header -->
 	<div class="mb-8">
 		<h1 class="text-2xl font-bold text-gray-900">Occasions</h1>
-		<p class="text-gray-600 mt-1">Manage occasion types for outfit recommendations</p>
+		<p class="text-gray-600 mt-1">
+			Manage occasion types for outfit recommendations
+		</p>
 	</div>
 
 	<!-- Action Bar -->
@@ -141,16 +147,24 @@
 				<tbody class="bg-white divide-y divide-gray-200">
 					{#each occasions as occasion (occasion.id)}
 						<tr class="hover:bg-gray-50">
-							<td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+							<td
+								class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900"
+							>
 								{occasion.name}
 							</td>
-							<td class="px-6 py-4 text-sm text-gray-500 max-w-md truncate">
-								{occasion.description || '-'}
+							<td
+								class="px-6 py-4 text-sm text-gray-500 max-w-md truncate"
+							>
+								{occasion.description || "-"}
 							</td>
-							<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+							<td
+								class="px-6 py-4 whitespace-nowrap text-sm text-gray-500"
+							>
 								{occasion.display_order}
 							</td>
-							<td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+							<td
+								class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium"
+							>
 								<button
 									on:click={() => openEditModal(occasion)}
 									class="text-indigo-600 hover:text-indigo-900 mr-4"
@@ -159,7 +173,11 @@
 									<Edit class="w-4 h-4 inline" />
 								</button>
 								<button
-									on:click={() => handleDelete(occasion.id, occasion.name)}
+									on:click={() =>
+										handleDelete(
+											occasion.id,
+											occasion.name,
+										)}
 									class="text-red-600 hover:text-red-900"
 									title="Delete"
 								>
@@ -175,11 +193,17 @@
 </div>
 
 <!-- Modal -->
-<Modal bind:open={showModal} title={editingOccasion ? 'Edit Occasion' : 'Add Occasion'}>
+<Modal
+	bind:open={showModal}
+	title={editingOccasion ? "Edit Occasion" : "Add Occasion"}
+>
 	<form on:submit|preventDefault={handleSubmit}>
 		<div class="space-y-4">
 			<div>
-				<label for="name" class="block text-sm font-medium text-gray-700 mb-1">
+				<label
+					for="name"
+					class="block text-sm font-medium text-gray-700 mb-1"
+				>
 					Occasion Name <span class="text-red-500">*</span>
 				</label>
 				<input
@@ -194,7 +218,10 @@
 			</div>
 
 			<div>
-				<label for="description" class="block text-sm font-medium text-gray-700 mb-1">
+				<label
+					for="description"
+					class="block text-sm font-medium text-gray-700 mb-1"
+				>
 					Description
 				</label>
 				<textarea
@@ -204,12 +231,15 @@
 					rows="3"
 					class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
 					placeholder="Describe this occasion (optional)"
-				/>
+				></textarea>
 				<p class="text-xs text-gray-500 mt-1">Max 500 characters</p>
 			</div>
 
 			<div>
-				<label for="display_order" class="block text-sm font-medium text-gray-700 mb-1">
+				<label
+					for="display_order"
+					class="block text-sm font-medium text-gray-700 mb-1"
+				>
 					Display Order
 				</label>
 				<input
@@ -219,7 +249,9 @@
 					min="0"
 					class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
 				/>
-				<p class="text-xs text-gray-500 mt-1">Lower numbers appear first</p>
+				<p class="text-xs text-gray-500 mt-1">
+					Lower numbers appear first
+				</p>
 			</div>
 		</div>
 	</form>
@@ -238,7 +270,7 @@
 			disabled={loading}
 			class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors disabled:opacity-50"
 		>
-			{loading ? 'Saving...' : 'Save'}
+			{loading ? "Saving..." : "Save"}
 		</button>
 	</svelte:fragment>
 </Modal>

@@ -14,6 +14,8 @@
 	export let required: boolean = false;
 	export let disabled: boolean = false;
 	export let showColorDots: boolean = false; // For color options with hex codes
+	export let id: string =
+		"multi-select-" + Math.random().toString(36).substr(2, 9);
 
 	const dispatch = createEventDispatcher<{ change: string[] }>();
 
@@ -63,7 +65,7 @@
 
 <div class="multi-select-container">
 	{#if label}
-		<label class="block text-sm font-medium text-gray-700 mb-1">
+		<label for={id} class="block text-sm font-medium text-gray-700 mb-1">
 			{label}
 			{#if required}
 				<span class="text-red-500">*</span>
@@ -74,6 +76,7 @@
 	<div bind:this={dropdownEl} class="relative">
 		<!-- Selected values (chips) + dropdown trigger -->
 		<div
+			{id}
 			class="multi-select-input"
 			class:disabled
 			class:open={dropdownOpen}
@@ -164,8 +167,11 @@
 							class="dropdown-item"
 							class:selected={isSelected}
 							on:click={() => toggleOption(option.name)}
+							on:keydown={(e) =>
+								e.key === "Enter" && toggleOption(option.name)}
 							role="option"
 							aria-selected={isSelected}
+							tabindex="-1"
 						>
 							<div class="checkbox-container">
 								<input
