@@ -1,0 +1,16 @@
+[build]
+  command = "npm run build"
+  publish = "build"
+
+# Environment variables are set in Netlify UI
+# Go to: Site settings > Environment variables
+# Add these variables:
+# - PUBLIC_SUPABASE_URL
+# - PUBLIC_SUPABASE_ANON_KEY
+# - SUPABASE_SERVICE_ROLE_KEY
+# - OPENAI_API_KEY
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

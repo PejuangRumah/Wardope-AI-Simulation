@@ -1,8 +1,6 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { createClient } from '@supabase/supabase-js';
-import { env as publicEnv } from '$env/dynamic/public';
-import { env as privateEnv } from '$env/dynamic/private';
 
 export const POST: RequestHandler = async ({ request, locals }) => {
 	try {
@@ -25,9 +23,10 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		}
 
 		// Create admin client to check for existing users
+		// Using process.env for Netlify compatibility during SSR build
 		const supabaseAdmin = createClient(
-			publicEnv.PUBLIC_SUPABASE_URL,
-			privateEnv.SUPABASE_SERVICE_ROLE_KEY,
+			process.env.PUBLIC_SUPABASE_URL!,
+			process.env.SUPABASE_SERVICE_ROLE_KEY!,
 			{
 				auth: {
 					autoRefreshToken: false,
