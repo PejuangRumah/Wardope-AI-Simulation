@@ -89,7 +89,7 @@ export async function improveItemImage(
 		n: 1,
 		size: '1024x1024'
 		// Note: gpt-image-1 returns base64-encoded JSON (b64_json), not URLs
-	});
+	}, { timeout: 120000 });
 
 	// Extract base64 image data
 	if (!response.data || response.data.length === 0) {
