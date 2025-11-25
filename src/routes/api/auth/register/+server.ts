@@ -1,8 +1,8 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { createClient } from '@supabase/supabase-js';
-import { env } from '$env/dynamic/public';
-import { SUPABASE_SERVICE_ROLE_KEY } from '$env/static/private';
+import { env as publicEnv } from '$env/dynamic/public';
+import { env as privateEnv } from '$env/dynamic/private';
 
 export const POST: RequestHandler = async ({ request, locals }) => {
 	try {
@@ -26,8 +26,8 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 
 		// Create admin client to check for existing users
 		const supabaseAdmin = createClient(
-			env.PUBLIC_SUPABASE_URL,
-			SUPABASE_SERVICE_ROLE_KEY,
+			publicEnv.PUBLIC_SUPABASE_URL,
+			privateEnv.SUPABASE_SERVICE_ROLE_KEY,
 			{
 				auth: {
 					autoRefreshToken: false,

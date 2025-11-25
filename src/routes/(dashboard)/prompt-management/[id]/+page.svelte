@@ -93,6 +93,12 @@
 		viewingContent = null;
 	}
 
+	function handleBackdropClick(e: MouseEvent) {
+		if (e.target === e.currentTarget) {
+			closeContentView();
+		}
+	}
+
 	function getContentPreview(
 		content: string,
 		maxLength: number = 150,
@@ -317,14 +323,13 @@
 {#if viewingContent}
 	<div
 		class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
-		on:click={closeContentView}
+		on:click={handleBackdropClick}
 		on:keydown={(e) => e.key === "Escape" && closeContentView()}
 		role="button"
 		tabindex="0"
 	>
 		<div
 			class="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col"
-			on:click|stopPropagation
 			role="document"
 			tabindex="-1"
 		>
