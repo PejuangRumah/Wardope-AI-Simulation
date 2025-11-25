@@ -614,10 +614,14 @@
 			<div class="space-y-4">
 				<!-- Occasion Selector -->
 				<div>
-					<label class="block text-sm font-medium text-gray-700 mb-2">
+					<label
+						for="occasion-select"
+						class="block text-sm font-medium text-gray-700 mb-2"
+					>
 						Occasion <span class="text-red-500">*</span>
 					</label>
 					<select
+						id="occasion-select"
 						bind:value={occasion}
 						disabled={!isWardrobeReady}
 						class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
@@ -632,10 +636,14 @@
 
 				<!-- Prompt Selector -->
 				<div>
-					<label class="block text-sm font-medium text-gray-700 mb-2">
+					<label
+						for="prompt-select"
+						class="block text-sm font-medium text-gray-700 mb-2"
+					>
 						AI Prompt <span class="text-red-500">*</span>
 					</label>
 					<select
+						id="prompt-select"
 						bind:value={selectedPromptId}
 						disabled={!isWardrobeReady}
 						class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
@@ -661,10 +669,14 @@
 
 				<!-- Note/Preferences -->
 				<div>
-					<label class="block text-sm font-medium text-gray-700 mb-2">
+					<label
+						for="preferences-input"
+						class="block text-sm font-medium text-gray-700 mb-2"
+					>
 						Additional Preferences (Optional)
 					</label>
 					<textarea
+						id="preferences-input"
 						bind:value={note}
 						disabled={!isWardrobeReady}
 						placeholder="E.g., prefer blue colors, avoid formal wear..."
@@ -794,6 +806,7 @@
 						<div class="mb-6">
 							<div class="mb-4">
 								<label
+									for="canvas-bg"
 									class="block text-sm font-medium text-gray-700 mb-3"
 								>
 									Background Color

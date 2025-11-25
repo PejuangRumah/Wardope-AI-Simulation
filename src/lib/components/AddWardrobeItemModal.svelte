@@ -779,11 +779,13 @@
 					<!-- Category -->
 					<div>
 						<label
+							for="add-category"
 							class="block text-sm font-medium text-gray-700 mb-1"
 						>
 							Category <span class="text-red-500">*</span>
 						</label>
 						<select
+							id="add-category"
 							bind:value={formData.category}
 							class="w-full px-3 py-2 border rounded-lg"
 							required
@@ -800,11 +802,13 @@
 					<!-- Subcategory -->
 					<div>
 						<label
+							for="add-subcategory"
 							class="block text-sm font-medium text-gray-700 mb-1"
 						>
 							Subcategory <span class="text-red-500">*</span>
 						</label>
 						<select
+							id="add-subcategory"
 							bind:value={formData.subcategory}
 							class="w-full px-3 py-2 border rounded-lg"
 							required
@@ -822,6 +826,7 @@
 					<!-- Colors (Multi-select) -->
 					<div>
 						<MultiSelect
+							id="add-colors"
 							label="Colors"
 							required={true}
 							options={masterData.colors}
@@ -837,10 +842,12 @@
 					<!-- Fit -->
 					<div>
 						<label
+							for="add-fit"
 							class="block text-sm font-medium text-gray-700 mb-1"
 							>Fit (Optional)</label
 						>
 						<select
+							id="add-fit"
 							bind:value={formData.fit}
 							class="w-full px-3 py-2 border rounded-lg"
 							disabled={!formData.category}
@@ -855,10 +862,12 @@
 					<!-- Brand -->
 					<div>
 						<label
+							for="add-brand"
 							class="block text-sm font-medium text-gray-700 mb-1"
 							>Brand (Optional)</label
 						>
 						<input
+							id="add-brand"
 							type="text"
 							bind:value={formData.brand}
 							placeholder="e.g., Nike, Adidas..."
@@ -869,6 +878,7 @@
 					<!-- Occasions (Multi-select) -->
 					<div>
 						<MultiSelect
+							id="add-occasions"
 							label="Occasions (Optional)"
 							required={false}
 							options={masterData.occasions}
@@ -884,11 +894,13 @@
 					<!-- Description -->
 					<div>
 						<label
+							for="add-description"
 							class="block text-sm font-medium text-gray-700 mb-1"
 						>
 							Description <span class="text-red-500">*</span>
 						</label>
 						<textarea
+							id="add-description"
 							bind:value={formData.description}
 							rows="3"
 							placeholder="Describe the item..."
